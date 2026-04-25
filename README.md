@@ -4,7 +4,7 @@ Still working on...
 ### Enviroment Setup
 - Get `pixi` first:
     ```bash
-    # Download pixi
+    # Download and install pixi
     curl -fsSL https://pixi.sh/install.sh | bash
     # Update environment variable
     source ~/.bashrc
