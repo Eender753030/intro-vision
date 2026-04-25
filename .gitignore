@@ -2,4 +2,14 @@
 .pixi/*
 !.pixi/config.toml
 
+# Dataset
+archive/*
+
+log/*
 .vscode/*
+__pycache__
+model/*
+*.log
+*.pt
+*.onnx
+*.espdl
