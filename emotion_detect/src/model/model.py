@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from functools import reduce
+
 
 class ConvBlock(nn.Module):
     """
@@ -32,6 +32,7 @@ class ConvBlock(nn.Module):
     def forward(self, x: torch.Tensor):
         return self.conv_block(x)
 
+
 class ResBlock(nn.Module):
     """
     Two convolution unit with input residual pass to output.
@@ -61,13 +62,17 @@ class ResBlock(nn.Module):
         
         x += residual
         return self.relu(x)
-    
+
+
 class SimpleCNN(nn.Module):
     """
     Simple CNN model.
     
     Args:
-        num_classes: Num of output classes.
+        num_class: Amount of output classes.
+        num_stage: Amount of stage containing ConvBlock + ResBlock.
+        num_res: Amount of ResBlock in each stage.
+        dropout: Dropout rate.
     """
     def __init__(
         self, 
@@ -113,8 +118,3 @@ if __name__ == "__main__":
     model = SimpleCNN()
     
     summary(model, input_size=(1, 1, 48, 48))
-    
-
-        
-        
-    

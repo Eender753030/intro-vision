@@ -1,5 +1,6 @@
 import argparse
 import torch
+import os
 
 from torchinfo import summary
 
@@ -34,6 +35,9 @@ def main(args: argparse.Namespace):
     
 
 if __name__ == "__main__":
+    # Lock the working directory to the root of emotion_detect/
+    os.chdir(os.path.join(os.path.dirname(__file__), ".."))   
+
     parser = argparse.ArgumentParser(description="Default is training mode")
     parser.add_argument("--test", action="store_true", help="Start with testing mode")
     
