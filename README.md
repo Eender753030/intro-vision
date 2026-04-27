@@ -20,5 +20,6 @@ Still working on...
 ### Commands
 You can check `tasks` in `pixi.toml` for commands detail.
 
-- `pixi run train`: Train the emotion detect model
-- `pixi run test`: Test the emotion detect model
+- `pixi run emo_train`: Train the emotion detect model.
+- `pixi run emo_test`: Test the emotion detect model.
+- `pixi run emo_infer <input_path>`: Use emotion detect model to inference your input image. Need path argument.
