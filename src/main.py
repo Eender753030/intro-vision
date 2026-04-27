@@ -8,7 +8,7 @@ from model import get_model
 from logger import get_logger
 from trainer import Trainer
 from tester import Tester
-
+from inferencer import Inferencer
 
 def main(args: argparse.Namespace):
     logger = get_logger("intro-vision", "log")
@@ -24,7 +24,11 @@ def main(args: argparse.Namespace):
     logger.info("Model build completed")
     logger.debug('\n' + str(summary(model, (1, 1, 48, 48), verbose=0)))
     
-    if args.test:
+    if args.infer is not None:
+        inferencer = Inferencer(model, device, args.infer, logger)
+        inferencer.infer()
+        
+    elif args.test:
         tester = Tester(model, device, logger, config)
         tester.test()
         
@@ -35,7 +39,8 @@ def main(args: argparse.Namespace):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Default is training mode")
-    parser.add_argument("--test", action="store_true", help="Start with testing mode")
+    parser.add_argument("-t", "--test", action="store_true", help="Start with testing mode")
+    parser.add_argument("-i", "--infer", type=str, default=None, help="Start with inference mode. Need input image path.")
     
     args = parser.parse_args()
     main(args)

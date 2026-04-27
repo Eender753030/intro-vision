@@ -61,7 +61,11 @@ class Trainer:
         
         self.best_val_loss = float("inf")
         
-        self.loss = CrossEntropyLoss(weight=get_classes_weight(config["data"]["path"]).to(device))
+        self.loss = CrossEntropyLoss(
+            weight=get_classes_weight(config["data"]["path"]).to(device),
+            label_smoothing=config["train"]["label_smoothing"]
+        )
+        
         self.optimizer = Adam(
             model.parameters(), 
             lr=train_config["lr"],
