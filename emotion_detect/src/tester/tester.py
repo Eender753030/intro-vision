@@ -6,7 +6,18 @@ from tqdm import tqdm
 from model import SimpleCNN
 from dataloader import get_dataloader
 
+
 class Tester:
+    """
+    A class for testing workflow.
+
+    Args:
+        model: The model that will be tested.
+        device: The working processer, cuda or cpu.
+        logger: The Logger to record information or warning.
+        config: The configuration settings.
+    """
+
     def __init__(
         self, 
         model: SimpleCNN,
@@ -24,9 +35,12 @@ class Tester:
         self.logger = logger
         self.config = checkpoint["config"]
         
-        self.dataloader = get_dataloader(config["data"]["path"], config, training=False)
+        self.dataloader = get_dataloader(config["data"]["path"], config, logger, training=False)
         
     def test(self):
+        """
+        Start testing, and evalute the result of testing.
+        """
         total = 0
         correct = 0
         total_time = 0
@@ -59,5 +73,3 @@ class Tester:
         
         self.logger.info(f"Test accuracy: {accuracy:.2f}%. Process data count: {total}. Cost time: {total_time:.2f}s. Avg time: {total_time / total * 1000:.3f}ms")
                  
-                
-        

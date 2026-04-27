@@ -1,25 +1,54 @@
 import os
 import torch
 import json
+from logging import Logger
 from torch.utils.data import DataLoader, random_split
 from torchvision.transforms import v2
 
-from .dataloader import RafDbDataset
-from .preprocces import *
+from .dataset import RafDbDataset
+from .preprocess import get_mean_and_std
 
-def get_dataloader(data_path: os.PathLike, config: dict, training: bool = True) -> tuple[DataLoader, DataLoader] | DataLoader: 
+
+def get_dataloader(
+    data_path: os.PathLike, 
+    config: dict, 
+    logger: Logger,
+    training: bool = True
+) -> tuple[DataLoader, DataLoader] | DataLoader:
+    """
+    Build the dataloader with RAF-DB dataset in training or testing.
+    Crate transforms for pre-process of the images.
+    
+    Args:
+        data_path: The path of folder where dataset is.
+        config: The configuration settings.
+        logger: The Logger to record information or warning.
+        training: Is training or testing mode.
+    
+    Returns:
+        train_dataloader, valid_dataloader: The splited dataloader of train and valid using for training.
+        
+        test_dataloader: The dataloader for testing.
+    """ 
+    logger.info("Building dataloader...")
+
+    logger.info("Loading mean and std value...")
     try:
+       
         with open("model/normalize_data.json", "r") as f:
             d = json.load(f)
         mean = d["mean"]
         std = d["std"]
     except:
         if not training:
-            raise RuntimeError("No normalize_data found. Try training first.")
-        mean, std = get_mean_and_std(data_path)
+            raise RuntimeError("No normalize_data.json found. Try training first.")
+        logger.warning("Can not found normalize_data.json. Caculating from training data...")
+        mean, std = get_mean_and_std(data_path, logger)
         d = {"mean": mean, "std": std}
+        os.makedirs("model", exist_ok=True)
         with open("model/normalize_data.json", "w") as f:
             json.dump(d, f)
+    logger.info("Normalize data loaded.")
 
     if training:
         transform = v2.Compose([
@@ -41,9 +70,10 @@ def get_dataloader(data_path: os.PathLike, config: dict, training: bool = True) 
             v2.Normalize(mean=[mean], std=[std]),
         ])
         
-    dataset = RafDbDataset(data_path, training=training, transform=transform)
+    dataset = RafDbDataset(data_path, logger=logger, training=training, transform=transform)
     g = torch.Generator().manual_seed(42)
     
+    logger.info("Crating datalodaer...")
     if not training:
         return DataLoader(
             dataset,

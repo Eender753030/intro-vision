@@ -15,6 +15,13 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "model")
 
 
 class EarlyStopping:
+    """
+    Manage when the training need to stop earlier.
+
+    Args: 
+        patience: How many epochs that validation loss not update will end the training.
+        min_delta: The delta of loss change.
+    """
     def __init__(self, patience: int = 7, min_delta: float = 1e-3):
         self.patience = patience
         self.min_delta = min_delta
@@ -23,6 +30,9 @@ class EarlyStopping:
         self.best_val_loss = float("inf")
         
     def update_and_check(self, val_loss: float, epoch: int) -> bool:
+        """
+        Update best_val_loss if the val_loss is better than the best in past, and check early stop or not.
+        """
         if val_loss < self.best_val_loss - self.min_delta:
             self.best_val_loss = val_loss
             self.best_epoch = epoch
@@ -34,7 +44,17 @@ class EarlyStopping:
             return True
         return False
 
+
 class Trainer:
+    """
+    A class for training workflow.
+
+    Args:
+        model: The model that will be tested.
+        device: The working processer, cuda or cpu.
+        logger: The Logger to record information or warning.
+        config: The configuration settings.
+    """
     def __init__(
         self,
         model: SimpleCNN,
@@ -45,7 +65,7 @@ class Trainer:
         train_config = config["train"]
         self.model = model
         self.device = device
-        self.train_dataloder, self.valid_dataloader = get_dataloader(config["data"]["path"], config, training=True)
+        self.train_dataloder, self.valid_dataloader = get_dataloader(config["data"]["path"], config, logger, training=True)
 
         self.logger = logger
         self.epochs = train_config["epochs"]
@@ -78,7 +98,9 @@ class Trainer:
         os.makedirs(MODEL_PATH, exist_ok=True)
         
     def train(self):
-        
+        """
+        Start training. 
+        """
         for epoch in range(1, self.epochs+1):
             self.model.train()
             
@@ -115,8 +137,10 @@ class Trainer:
         self._draw_result_plot()
         
     def _train_epoch(self, epoch: int) -> float:
+        """
+        Run an epoch of training.
+        """
         running_loss = 0
-        
         
         for images, labels in tqdm(self.train_dataloder, desc=f"Training Epoch:{epoch}/{self.epochs}:"):
             images = images.to(self.device, non_blocking=True)
@@ -141,6 +165,9 @@ class Trainer:
         return epoch_loss
     
     def _valie_epoch(self, epoch: int) -> tuple[float, float]:
+        """
+        Run an epoch of validation.
+        """
         self.model.eval()
         running_val_loss = 0
         correct = 0
@@ -170,6 +197,9 @@ class Trainer:
         return epoch_val_loss, epoch_accuracy
        
     def _draw_result_plot(self):
+        """
+        Draw the result plot and save.
+        """
         import matplotlib.pyplot as plt
         
         plt.figure(figsize=(12, 8))
