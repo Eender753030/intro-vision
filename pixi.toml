@@ -8,6 +8,7 @@ version = "0.1.0"
 [tasks]
 emo_train = "python emotion_detect/src/main.py"
 emo_test = "python emotion_detect/src/main.py --test"
+emo_infer = "python emotion_detect/src/main.py --infer" # Need argument of input image path
 
 [dependencies]
 python = "3.11.*"
