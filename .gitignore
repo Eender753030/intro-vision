@@ -3,12 +3,12 @@
 !.pixi/config.toml
 
 # Dataset
-archive/*
+emotion_detect/archive/*
 
-log/*
 .vscode/*
 __pycache__
-model/*
+emotion_detect/model/*
+emotion_detect/log/*
 *.log
 *.pt
 *.onnx

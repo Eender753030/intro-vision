@@ -6,9 +6,9 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
-train = "python src/main.py"
-test = "python src/main.py --test"
-infer = "python src/main.py --infer" # Need argument of input image path
+emo_train = "python emotion_detect/src/main.py"
+emo_test = "python emotion_detect/src/main.py --test"
+emo_infer = "python emotion_detect/src/main.py --infer" # Need argument of input image path
 onnx_export = "python script/export_onnx.py"
 onnx_test = "python script/test_onnx.py"
 espdl_export = "python script/export_espdl.py"
