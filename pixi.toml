@@ -9,10 +9,10 @@ version = "0.1.0"
 emo_train = "python emotion_detect/src/main.py"
 emo_test = "python emotion_detect/src/main.py --test"
 emo_infer = "python emotion_detect/src/main.py --infer" # Need argument of input image path
-onnx_export = "python script/export_onnx.py"
-onnx_test = "python script/test_onnx.py"
-espdl_export = "python script/export_espdl.py"
-sim = "python -m onnxsim model/model.onnx model/model_simplified.onnx"
+emo_onnx_export = "python script/export_onnx.py"
+emo_onnx_sim = "python -m onnxsim model/model.onnx model/model_simplified.onnx"
+emo_onnx_test = "python script/test_onnx.py"
+emo_espdl_export = "python script/export_espdl.py"
 
 [dependencies]
 python = "3.11.*"
