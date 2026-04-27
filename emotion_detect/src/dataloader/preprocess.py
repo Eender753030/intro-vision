@@ -2,19 +2,29 @@ import os
 import torch
 import numpy as np
 import pandas as pd
+from logging import Logger
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
-from .dataloader import RafDbDataset
+from .dataset import RafDbDataset
+
 
 def get_classes_weight(data_path: os.PathLike) -> torch.Tensor:
+    """
+    Caculate the weight of every class in the dataset.
+    Less amount has greater weight.
+    """
     df = pd.read_csv(os.path.join(data_path, "train_labels.csv"))
     total = len(df["label"])
     weights = df["label"].value_counts().sort_index().apply(lambda x: 1 / (x/total)).tolist()
 
     return torch.tensor(weights)
 
-def get_mean_and_std(data_path: os.PathLike) -> tuple[float, float]:
+
+def get_mean_and_std(data_path: os.PathLike, logger: Logger) -> tuple[float, float]:
+    """
+    Load all training data and caculate mean and std values.
+    """
     tmp_transform = v2.Compose([
         v2.Grayscale(),
         v2.Resize((48, 48)),
@@ -22,7 +32,7 @@ def get_mean_and_std(data_path: os.PathLike) -> tuple[float, float]:
         v2.ToDtype(torch.float32, scale=True),
     ])
     
-    tmp_dataset = RafDbDataset(data_path, training=True, transform=tmp_transform)
+    tmp_dataset = RafDbDataset(data_path, logger=logger, training=True, transform=tmp_transform)
     
     loader = DataLoader(tmp_dataset, batch_size=256)
     

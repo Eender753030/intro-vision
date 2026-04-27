@@ -6,9 +6,9 @@ platforms = ["linux-64"]
 version = "0.1.0"
 
 [tasks]
-train = "python src/main.py"
-test = "python src/main.py --test"
-infer = "python src/main.py --infer" # Need argument of input image path
+emo_train = "python emotion_detect/src/main.py"
+emo_test = "python emotion_detect/src/main.py --test"
+infer = "python emotion_detect/src/main.py --infer" # Need argument of input image path
 
 [dependencies]
 python = "3.11.*"
