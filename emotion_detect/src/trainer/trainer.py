@@ -65,7 +65,7 @@ class Trainer:
         train_config = config["train"]
         self.model = model
         self.device = device
-        self.train_dataloder, self.valid_dataloader = get_dataloader(config["data"]["path"], config, training=True)
+        self.train_dataloder, self.valid_dataloader = get_dataloader(config["data"]["path"], config, logger, training=True)
 
         self.logger = logger
         self.epochs = train_config["epochs"]
