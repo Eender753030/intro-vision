@@ -1,25 +1,39 @@
+from asyncio import coroutines
+import torch
+import numpy as np
+import os
 import sys
 import onnxruntime as ort
-import numpy as np
 import time
 from tqdm import tqdm
+from pathlib import Path
 
-sys.path.append("src")
+# Bootstrap paths
+_script_dir = Path(__file__).resolve().parent
+_src_dir = _script_dir.parent / "src"
+if str(_src_dir) not in sys.path:
+    sys.path.append(str(_src_dir))
 
+from utils.paths import LOG_DIR, ROOT
 from dataloader import get_dataloader
 from config import get_config
 from logger import get_logger
 
-
 def main():
-    logger = get_logger("onnx_test", "log")
-    
-    logger.info("Building ONNX model...")
-    session = ort.InferenceSession("model/model_simplified.onnx",  providers=['CUDAExecutionProvider'])
-    logger.info("Build completed")
+    model_path = str(ROOT / "model" / "model_simplified.onnx")
+    logger = get_logger("onnx_test", str(LOG_DIR))
     
     config = get_config()
-    loader = get_dataloader("archive", config, training=False)
+    providers = ['CUDAExecutionProvider'] if config["device"].lower() == "cuda" else ['CPUExecutionProvider']
+    logger.info("Building ONNX model...")
+    session = ort.InferenceSession(model_path, providers=providers)
+    logger.info("Build completed")
+    
+    data_path = config["data"]["path"]
+    if not os.path.isabs(data_path):
+        data_path = os.path.join(base_dir, data_path)
+
+    loader = get_dataloader(data_path, config, logger, training=False)
     
     dummy_input = {"image": np.random.randn(1, 1, 48, 48).astype(np.float32)}
     logger.info("Warmup first...")

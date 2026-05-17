@@ -5,15 +5,20 @@ import pandas as pd
 from logging import Logger
 from torch.utils.data import DataLoader
 from torchvision.transforms import v2
+from pathlib import Path
 
 from .dataset import RafDbDataset
-
+from utils.paths import ROOT
 
 def get_classes_weight(data_path: os.PathLike) -> torch.Tensor:
     """
     Caculate the weight of every class in the dataset.
     Less amount has greater weight.
     """
+    data_path = Path(data_path)
+    if not data_path.is_absolute():
+        data_path = (ROOT / data_path).resolve()
+        
     df = pd.read_csv(os.path.join(data_path, "train_labels.csv"))
     total = len(df["label"])
     weights = df["label"].value_counts().sort_index().apply(lambda x: 1 / (x/total)).tolist()
@@ -25,6 +30,10 @@ def get_mean_and_std(data_path: os.PathLike, logger: Logger) -> tuple[float, flo
     """
     Load all training data and caculate mean and std values.
     """
+    data_path = Path(data_path)
+    if not data_path.is_absolute():
+        data_path = (ROOT / data_path).resolve()
+        
     tmp_transform = v2.Compose([
         v2.Grayscale(),
         v2.Resize((48, 48)),

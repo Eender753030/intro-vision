@@ -4,6 +4,8 @@ import torch
 import torchvision
 from torchvision.transforms import v2
 from logging import Logger
+from pathlib import Path
+from utils.paths import MODEL_DIR
 
 from model import SimpleCNN
 
@@ -18,7 +20,7 @@ class Inferencer:
     ):
         self.logger = logger
         self.logger.info("Loading state_dict into model...")
-        checkpoint = torch.load("model/best_model.pt", weights_only=True)
+        checkpoint = torch.load(MODEL_DIR / "best_model.pt", weights_only=True)
         
         self.model = model
         self.model.load_state_dict(checkpoint["model"])
@@ -67,9 +69,10 @@ class Inferencer:
         self._draw_result(img, emotion)
         
     def _load_image(self) -> torch.Tensor:       
-        img = torchvision.io.read_image(self.input_path)
+        img = torchvision.io.read_image(str(self.input_path))
         img = img.unsqueeze(0)
-        with open("model/normalize_data.json", 'r') as f:
+        norm_json_path = MODEL_DIR / "normalize_data.json"
+        with open(norm_json_path, 'r') as f:
             j = json.load(f)
             mean, std = j["mean"], j["std"]
             

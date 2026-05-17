@@ -2,11 +2,11 @@ import torch
 import time
 from logging import Logger
 from tqdm import tqdm
+from pathlib import Path
 
 from model import SimpleCNN
 from dataloader import get_dataloader
-
-
+from utils.paths import MODEL_DIR
 class Tester:
     """
     A class for testing workflow.
@@ -26,7 +26,7 @@ class Tester:
         config: dict, 
     ):
         self.model = model
-        checkpoint = torch.load("model/best_model.pt", weights_only=True)
+        checkpoint = torch.load(MODEL_DIR / "best_model.pt", weights_only=True)
         self.model.load_state_dict(checkpoint["model"])
         self.model.to(device)
         self.model.eval()
@@ -47,8 +47,9 @@ class Tester:
         dummy_input = torch.randn(1, 1, 48, 48).to(self.device)
         self.logger.info("Warnup first...")
         with torch.no_grad():
-            for _ in tqdm(range(100), desc="Warmup"):
-                _ = self.model(dummy_input)
+            output, _ = self.model(dummy_input)
+            
+            prob = torch.nn.functional.softmax(output, dim=1).squeeze()
         
         self.logger.info("Ready!")
         
@@ -60,7 +61,7 @@ class Tester:
                 label = label.to(self.device)
     
                 start = time.perf_counter()
-                output = self.model(image)
+                output, _ = self.model(image)
                 end = time.perf_counter()
                 
                 _, predicted = torch.max(output, dim=1)

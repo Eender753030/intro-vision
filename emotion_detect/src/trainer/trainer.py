@@ -130,9 +130,10 @@ class Trainer:
                     "best_val_loss": self.best_val_loss,
                     "epoch": epoch,
                     "config": self.config,
-                }        
-                torch.save(checkpoint, os.path.join(MODEL_PATH, "best_model.pt"))
-                self.logger.info(f"Save best model at epoch {epoch}.")
+                }
+                checkpoint_path = MODEL_DIR / "best_model.pt"
+                torch.save(checkpoint, checkpoint_path)
+                self.logger.info(f"Best model saved to {checkpoint_path}")
             
             if self.stopper is not None and self.stopper.update_and_check(epoch_val_loss, epoch):
                 self.logger.info(f"Validation loss not improved. Early stop at epoch {epoch}.")
@@ -215,16 +216,17 @@ class Trainer:
         plt.xlabel("Epoch")
         plt.ylabel("Loss")
         
-        plt.savefig("log/training_result.png")
+        os.makedirs(LOG_DIR, exist_ok=True)
+        plt.savefig(LOG_DIR / "training_result.png")
         plt.close()
         
         plt.figure(figsize=(12, 8))
         plt.plot(self.metrics["val_acc"], color="green")
-        plt
+        
         plt.title("Validation Accuracy")
         plt.xlabel("Epoch")
         plt.ylabel("Accuracy")
         
-        plt.savefig("log/validation_accuracy.png")
+        plt.savefig(LOG_DIR / "validation_accuracy.png")
         plt.close() 
         
