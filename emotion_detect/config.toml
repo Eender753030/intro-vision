@@ -2,9 +2,10 @@ device = "cuda" # cuda or cpu
 
 [model]
 num_class = 7
-num_stage = 2
+num_stage = 3
 num_res = 2
-dropout = 0.3
+dropout = 0.5
+base_channels = 32
 
 [data]
 path = "archive"
@@ -12,13 +13,17 @@ batch_size = 128
 num_workers = 6
 
 [train]
-epochs = 100
-lr = 1e-4
-max_lr = 1e-3
-weight_decay = 1e-4
+epochs = 500
+lr = 1e-2
+weight_decay = 1e-3
 label_smoothing = 0.1 # 0.0 ~ 1.0
+mixup_alpha = 0.2 # 0.0 ~ 1.0
 
 [train.early_stop]
 enable = true
-patience = 7
+patience = 20
 min_delta = 1e-3
+
+[train.loss]
+center_loss_weight = 0.01
+center_loss_lr = 0.5
