@@ -1,11 +1,7 @@
 import argparse
 import torch
 import os
-import sys
 from pathlib import Path
-
-from utils.paths import ROOT, add_src_to_path
-add_src_to_path()
 
 from config import get_config
 from model import get_model
@@ -13,6 +9,10 @@ from logger import get_logger
 from trainer import Trainer
 from tester import Tester
 from inferencer import Inferencer
+from utils.paths import ROOT, add_src_to_path
+
+add_src_to_path()
+
 
 def main(args: argparse.Namespace):
     config = get_config()
@@ -52,6 +52,7 @@ def main(args: argparse.Namespace):
     # 4. Training Mode
     trainer = Trainer(model, device, logger, config)
     trainer.train()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Emotion Detection Training and Inference")

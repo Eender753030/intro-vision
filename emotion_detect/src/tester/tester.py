@@ -7,6 +7,8 @@ from pathlib import Path
 from model import SimpleCNN
 from dataloader import get_dataloader
 from utils.paths import MODEL_DIR
+
+
 class Tester:
     """
     A class for testing workflow.

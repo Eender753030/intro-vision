@@ -2,7 +2,7 @@ import os
 import torch
 import json
 from logging import Logger
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
 from torchvision.transforms import v2
 
 from .dataset import RafDbDataset

@@ -10,6 +10,7 @@ from pathlib import Path
 from .dataset import RafDbDataset
 from utils.paths import ROOT
 
+
 def get_classes_weight(data_path: os.PathLike) -> torch.Tensor:
     """
     Caculate the weight of every class in the dataset.

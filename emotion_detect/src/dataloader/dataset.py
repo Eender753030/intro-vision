@@ -8,6 +8,7 @@ from torchvision.transforms import v2
 from pathlib import Path
 from utils.paths import ROOT
 
+
 class RafDbDataset(Dataset):
     """
     Custom dataset that use RAF-DB.

@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class CenterLoss(nn.Module):
     """
     Implementation of Center Loss as described in:

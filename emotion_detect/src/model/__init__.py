@@ -1,5 +1,6 @@
 from .model import SimpleCNN
 
+
 def get_model(config: dict) -> SimpleCNN:
     model_config = config["model"]
     return SimpleCNN (
