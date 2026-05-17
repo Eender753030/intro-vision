@@ -13,3 +13,10 @@ emotion_detect/log/*
 *.pt
 *.onnx
 *.espdl
+
+*/build/*
+sdkconfig
+sdkconfig.old
+managed_components/
+
+emotion_model_data.h
