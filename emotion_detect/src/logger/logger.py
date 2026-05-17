@@ -3,6 +3,7 @@ import os
 import sys
 from termcolor import colored
 
+
 def get_logger(name: str, target_dir: os.PathLike = "."):
     """
     Create a logger with StreamHandler for stdout and FileHandler making `name`.log to target directory.
@@ -14,7 +15,8 @@ def get_logger(name: str, target_dir: os.PathLike = "."):
     Returns:
         logging.Logger: Instance of logger
     """
-    os.makedirs(target_dir, exist_ok=True)
+    target_dir_str = str(target_dir)
+    os.makedirs(target_dir_str, exist_ok=True)
     
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)

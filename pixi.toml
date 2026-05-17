@@ -3,11 +3,28 @@ authors = ["Eender753030 <ender303030@gmail.com>"]
 channels = ["pytorch", "nvidia", "conda-forge", "pypi"]
 name = "intro-vision"
 platforms = ["linux-64"]
-version = "0.1.0"
+version = "0.2.0"
 
 [tasks]
-train = "python src/main.py"
-test = "python src/main.py --test"
+emo_train = "python $PIXI_PROJECT_ROOT/emotion_detect/src/main.py"
+emo_test = "python $PIXI_PROJECT_ROOT/emotion_detect/src/main.py --test"
+emo_infer = "python $PIXI_PROJECT_ROOT/emotion_detect/src/main.py --infer" # Need argument of input image path
+emo_onnx_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_onnx.py"
+emo_onnx_sim = "python -m onnxsim $PIXI_PROJECT_ROOT/emotion_detect/model/model.onnx $PIXI_PROJECT_ROOT/emotion_detect/model/model_simplified.onnx"
+emo_onnx_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_onnx.py"
+emo_espdl_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_espdl.py"
+emo_espdl_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_espdl.py"
+
+espdl_to_firmware = "nm $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl $PIXI_PROJECT_ROOT/firmware/main/emotion_model_data.h"
+esp32_hw_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_esp32_hardware.py"
+
+esp_init = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py set-target esp32s3'"
+esp_clean = "rm -rf $PIXI_PROJECT_ROOT/firmware/build $PIXI_PROJECT_ROOT/firmware/sdkconfig"
+esp_build = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py build'"
+esp_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash'"
+esp_flash_m = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash monitor'"
+esp_monitor = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py monitor'"
+esp_menuconfig = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py menuconfig'"
 
 [dependencies]
 python = "3.11.*"
@@ -20,3 +37,14 @@ matplotlib = ">=3.9.1,<4"
 numpy = ">=2.4.3,<3"
 tqdm = ">=4.67.3,<5"
 prettytable = ">=3.17.0,<4"
+onnxscript = ">=0.5.6,<0.6"
+onnxruntime = ">=1.24.2,<2"
+pillow = ">=9.4.0,<10"
+pyserial = ">=3.5,<4"
+
+[pypi-dependencies]
+onnxsim = "==0.4.36"
+esp-ppq = ">=1.2.10, <2"
+
+[activation]
+env = { IDF_PATH = "/home/eender/.espressif/v5.4.4/esp-idf", IDF_EXTRA_ACTIONS_PATH = "$PIXI_PROJECT_ROOT/firmware/components/esp-who/tools" }

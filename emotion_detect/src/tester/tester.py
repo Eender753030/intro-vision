@@ -2,11 +2,24 @@ import torch
 import time
 from logging import Logger
 from tqdm import tqdm
+from pathlib import Path
 
 from model import SimpleCNN
 from dataloader import get_dataloader
+from utils.paths import MODEL_DIR
+
 
 class Tester:
+    """
+    A class for testing workflow.
+
+    Args:
+        model: The model that will be tested.
+        device: The working processer, cuda or cpu.
+        logger: The Logger to record information or warning.
+        config: The configuration settings.
+    """
+
     def __init__(
         self, 
         model: SimpleCNN,
@@ -15,7 +28,7 @@ class Tester:
         config: dict, 
     ):
         self.model = model
-        checkpoint = torch.load("model/best_model.pt", weights_only=True)
+        checkpoint = torch.load(MODEL_DIR / "best_model.pt", weights_only=True)
         self.model.load_state_dict(checkpoint["model"])
         self.model.to(device)
         self.model.eval()
@@ -24,17 +37,21 @@ class Tester:
         self.logger = logger
         self.config = checkpoint["config"]
         
-        self.dataloader = get_dataloader(config["data"]["path"], config, training=False)
+        self.dataloader = get_dataloader(config["data"]["path"], config, logger, training=False)
         
     def test(self):
+        """
+        Start testing, and evalute the result of testing.
+        """
         total = 0
         correct = 0
         total_time = 0
         dummy_input = torch.randn(1, 1, 48, 48).to(self.device)
         self.logger.info("Warnup first...")
         with torch.no_grad():
-            for _ in tqdm(range(100), desc="Warmup"):
-                _ = self.model(dummy_input)
+            output, _ = self.model(dummy_input)
+            
+            prob = torch.nn.functional.softmax(output, dim=1).squeeze()
         
         self.logger.info("Ready!")
         
@@ -46,7 +63,7 @@ class Tester:
                 label = label.to(self.device)
     
                 start = time.perf_counter()
-                output = self.model(image)
+                output, _ = self.model(image)
                 end = time.perf_counter()
                 
                 _, predicted = torch.max(output, dim=1)
@@ -59,5 +76,3 @@ class Tester:
         
         self.logger.info(f"Test accuracy: {accuracy:.2f}%. Process data count: {total}. Cost time: {total_time:.2f}s. Avg time: {total_time / total * 1000:.3f}ms")
                  
-                
-        
