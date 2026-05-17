@@ -1,17 +1,15 @@
-import tomllib
-import os
+import toml
+from utils.paths import CONFIG_PATH
 
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "..", "config.toml" )
-
-
-def get_config() -> dict:
-    """
-    Read configuration settings from config.toml
-    """
-    with open(CONFIG_FILE, "rb") as f:
-        config = tomllib.load(f)  
-    return config
+def get_config():
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            config = toml.load(f)
+        return config
+    except FileNotFoundError:
+        print(f"Error: {CONFIG_PATH} not found.")
+        return {}
             
             
 if __name__ == "__main__":

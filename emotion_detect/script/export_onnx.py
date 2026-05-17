@@ -1,42 +1,50 @@
 import torch
+from pathlib import Path
 
+# Bootstrap paths
 import sys
+import os
+_script_dir = Path(__file__).resolve().parent
+_src_dir = _script_dir.parent / "src"
+if str(_src_dir) not in sys.path:
+    sys.path.append(str(_src_dir))
 
-sys.path.append("src")
-
+from utils.paths import LOG_DIR, ROOT
 from model import get_model
 from logger import get_logger
 
 def main():
-    logger = get_logger("onnx_exporter", "log")
+    model_dir = ROOT / "model"
+    logger = get_logger("onnx_export", str(LOG_DIR))
  
     logger.info("Building PyTorch model...")
     
-    checkpoint = torch.load("model/best_model.pt", weights_only=True)
+    checkpoint_path = model_dir / "best_model.pt"
+    checkpoint = torch.load(checkpoint_path, weights_only=True)
     model = get_model(checkpoint["config"])
     model.load_state_dict(checkpoint["model"])
     model.eval()
     
     device = torch.device("cpu")
     model.to(device)
-
+ 
     logger.info("Build completed")
     
     dummy_input = torch.randn(1, 1, 48, 48).to(device)
     
-    logger.info(f"Exporting ONNX...")
+    onnx_path = os.path.join(model_dir, "model.onnx")
+    logger.info(f"Exporting ONNX to {onnx_path}...")
     with torch.no_grad():
         torch.onnx.export(
             model,
             dummy_input,
-            f="model/model.onnx",
+            f=onnx_path,
             export_params=True,
             input_names=["image"],
             output_names=["emotion"],
             opset_version=12,
-            # dynamo=True,
         )
-    logger.info(f"Export completed. Model store at model/model.onnx")
+    logger.info(f"Export completed.")
 
 
 
