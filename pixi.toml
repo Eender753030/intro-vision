@@ -15,7 +15,7 @@ emo_onnx_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_onnx.py"
 emo_espdl_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_espdl.py"
 emo_espdl_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_espdl.py"
 
-espdl_to_firmware = "nm $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl $PIXI_PROJECT_ROOT/firmware/main/emotion_model_data.h"
+espdl_to_firmware = "xxd -i $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl > $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h && sed -i '1s/unsigned char/const unsigned char/' $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h"
 esp32_hw_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_esp32_hardware.py"
 
 esp_init = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py set-target esp32s3'"

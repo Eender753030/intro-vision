@@ -1,5 +1,6 @@
 #include "emotion_model.hpp"
 #include "emotion_model_data.h"
+#include "image_preprocess.hpp"
 #include "esp_log.h"
 #include <cmath>
 #include <cstring>
@@ -11,7 +12,7 @@ const char* EmotionModel::EMOTION_LABELS[7] = {
 };
 
 EmotionModel::EmotionModel() : 
-    dl::Model((const char *)model_espdl, NULL, dl::fbs::MODEL_LOCATION_IN_FLASH_RODATA, 0),
+    dl::Model((const char *)_home_eender_Workspace_Project_intro_vision_emotion_detect_model_model_espdl),
     m_max_idx(6) 
 {
     for(int i=0; i<7; i++) m_probs[i] = 0.0f;
@@ -20,25 +21,8 @@ EmotionModel::EmotionModel() :
 void EmotionModel::inference(dl::image::img_t &img) {
     dl::TensorBase *input_tensor = this->get_input();
     
-    // 1. Precise Normalization [ (x/255.0 - mean) / std ]
-    const float MEAN = 0.4793299436569214f;
-    const float STD = 0.23705872893333435f;
-    
-    uint8_t *src = (uint8_t *)img.data;
-    if (input_tensor->dtype == dl::DATA_TYPE_INT8) {
-        int8_t *dst = (int8_t *)input_tensor->data;
-        float scale = powf(2.0f, (float)(int)input_tensor->exponent);
-        for (int i = 0; i < img.width * img.height; i++) {
-            float normalized = ((src[i] / 255.0f) - MEAN) / STD;
-            int quantized = (int)roundf(normalized / scale);
-            
-            // Essential clamping for INT8
-            if (quantized > 127) quantized = 127;
-            if (quantized < -128) quantized = -128;
-            
-            dst[i] = (int8_t)quantized;
-        }
-    }
+    // 1. Modular Preprocessing & Quantization
+    preprocess::normalize_and_quantize(img, input_tensor);
 
     // Run Forward
     this->run();

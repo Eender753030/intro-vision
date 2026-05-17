@@ -2,7 +2,7 @@
 
 #include "dl_model_base.hpp"
 #include "dl_tensor_base.hpp"
-#include "dl_image_base.hpp"
+#include "dl_image_define.hpp"
 #include <vector>
 #include <string>
 
