@@ -86,20 +86,33 @@ class Trainer:
             label_smoothing=config["train"]["label_smoothing"]
         )
         
-        self.optimizer = Adam(
+        self.optimizer = SGD(
             model.parameters(), 
             lr=train_config["lr"],
+            momentum=0.9,
             weight_decay=train_config["weight_decay"],
+            nesterov=True
         )
         
-        self.schedular = OneCycleLR(
+        self.schedular = CosineAnnealingLR(
             self.optimizer, 
-            max_lr=train_config["max_lr"],
-            epochs=train_config["epochs"],
-            steps_per_epoch=len(self.train_dataloder)
+            T_max=train_config["epochs"],
+            eta_min=1e-6
         )
+
+        # Center Loss setup
+        self.center_loss = CenterLoss(
+            num_classes=config["model"]["num_class"],
+            feat_dim=config["model"]["base_channels"] * 4, # Final channels after GAP
+            use_gpu=(device.type == 'cuda')
+        )
+        self.optimizer_center = SGD(
+            self.center_loss.parameters(),
+            lr=config["train"]["loss"]["center_loss_lr"]
+        )
+        self.center_loss_weight = config["train"]["loss"]["center_loss_weight"]
         
-        os.makedirs(MODEL_PATH, exist_ok=True)
+        os.makedirs(MODEL_DIR, exist_ok=True)
         
     def train(self):
         """
@@ -109,6 +122,9 @@ class Trainer:
             self.model.train()
             
             epoch_loss = self._train_epoch(epoch)
+            
+            if self.schedular is not None:
+                self.schedular.step()
                 
             epoch_val_loss, epoch_accuracy = self._valie_epoch(epoch)
                                      
@@ -152,18 +168,24 @@ class Trainer:
             labels = labels.to(self.device, non_blocking=True)
             
             self.optimizer.zero_grad()
+            self.optimizer_center.zero_grad()
             
-            outputs = self.model(images)
+            logits, features = self.model(images)
             
-            loss = self.loss(outputs, labels)
+            # Mixed Loss Calculation
+            l_ce = lam * self.loss(logits, targets_a) + (1 - lam) * self.loss(logits, targets_b)
+            l_center = lam * self.center_loss(features, targets_a) + (1 - lam) * self.center_loss(features, targets_b)
+            loss = l_ce + self.center_loss_weight * l_center
             
             loss.backward()
             
             self.optimizer.step()
+            # Multiple centers by inverse of learning rate to keep them in scale? 
+            # No, standard center loss optimizer handles it.
+            for param in self.center_loss.parameters():
+                param.grad.data *= (1. / self.center_loss_weight)
+            self.optimizer_center.step()
             
-            if self.schedular is not None:
-                self.schedular.step()
-                
             running_loss += loss.item() * images.size(0)
             
         epoch_loss = running_loss / max(1, len(self.train_dataloder.dataset))
@@ -183,13 +205,13 @@ class Trainer:
                 images = images.to(self.device, non_blocking=True)
                 labels = labels.to(self.device, non_blocking=True)
             
-                outputs = self.model(images)
+                logits, _ = self.model(images)
                 
-                val_loss = self.loss(outputs, labels)
+                val_loss = self.loss(logits, labels)
                 
                 running_val_loss += val_loss.item() * images.size(0)
                 
-                probs = torch.softmax(outputs, dim=1)
+                probs = torch.softmax(logits, dim=1)
                 _, predicted = torch.max(probs, dim=1)
                 
                 total += labels.size(0)
