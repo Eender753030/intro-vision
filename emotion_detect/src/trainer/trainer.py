@@ -1,17 +1,34 @@
 import os
 import torch 
-from torch.optim import Adam
+from torch.optim import SGD
 from torch.nn import CrossEntropyLoss
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import CosineAnnealingLR
+from torchinfo import summary
 from tqdm import tqdm
 from logging import Logger
 from prettytable import PrettyTable
 
-from dataloader import get_dataloader, get_classes_weight, get_mean_and_std
+from dataloader import get_dataloader, get_classes_weight
 from model import SimpleCNN
+from model.loss import CenterLoss
+import numpy as np
+
+from utils.paths import MODEL_DIR, LOG_DIR
 
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "model")
+def mixup_data(x, y, alpha=0.2, device='cuda'):
+    '''Returns mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1
+
+    batch_size = x.size()[0]
+    index = torch.randperm(batch_size).to(device)
+
+    mixed_x = lam * x + (1 - lam) * x[index, :]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
 
 
 class EarlyStopping:
@@ -113,6 +130,8 @@ class Trainer:
         self.center_loss_weight = config["train"]["loss"]["center_loss_weight"]
         
         os.makedirs(MODEL_DIR, exist_ok=True)
+
+        self.logger.info(f"Model summary:\n{summary(self.model, (1, 1, 48, 48), verbose=0)}")
         
     def train(self):
         """
@@ -166,6 +185,13 @@ class Trainer:
         for images, labels in tqdm(self.train_dataloder, desc=f"Training Epoch:{epoch}/{self.epochs}:"):
             images = images.to(self.device, non_blocking=True)
             labels = labels.to(self.device, non_blocking=True)
+            
+            # Mixup Data
+            alpha = self.config["train"].get("mixup_alpha", 0.0)
+            if alpha > 0:
+                images, targets_a, targets_b, lam = mixup_data(images, labels, alpha, self.device)
+            else:
+                targets_a, targets_b, lam = labels, labels, 1.0
             
             self.optimizer.zero_grad()
             self.optimizer_center.zero_grad()
