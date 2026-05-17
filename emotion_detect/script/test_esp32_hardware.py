@@ -15,7 +15,7 @@ _src_dir = _root_dir / "src"
 if str(_src_dir) not in sys.path:
     sys.path.append(str(_src_dir))
 
-from utils.paths import LOG_DIR
+from utils.paths import LOG_DIR, ROOT
 from dataloader import get_dataloader
 from config import get_config
 from logger import get_logger
@@ -39,7 +39,7 @@ def main():
     config = get_config()
     data_path = config["data"]["path"]
     if not os.path.isabs(data_path):
-        data_path = os.path.join(base_dir, data_path)
+        data_path = str(ROOT / data_path)
 
     loader = get_dataloader(data_path, config, logger, training=False)
     

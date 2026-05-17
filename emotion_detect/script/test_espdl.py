@@ -1,3 +1,4 @@
+import os
 import time
 import numpy as np
 import torch
@@ -11,7 +12,7 @@ _src_dir = _script_dir.parent / "src"
 if str(_src_dir) not in sys.path:
     sys.path.append(str(_src_dir))
 
-from utils.paths import LOG_DIR, ROOT
+from utils.paths import LOG_DIR, ROOT, MODEL_DIR
 from dataloader import get_dataloader
 from config import get_config
 from logger import get_logger
@@ -25,7 +26,7 @@ except ImportError:
     sys.exit(1)
 
 def main():
-    onnx_path = str(ROOT / "model" / "model_simplified.onnx")
+    onnx_path = str(MODEL_DIR / "model_simplified.onnx")
     logger = get_logger("espdl_test", str(LOG_DIR))
 
     if not os.path.exists(onnx_path):
@@ -36,7 +37,7 @@ def main():
     config = get_config()
     data_path = config["data"]["path"]
     if not os.path.isabs(data_path):
-        data_path = os.path.join(base_dir, data_path)
+        data_path = str(ROOT / data_path)
 
     loader = get_dataloader(data_path, config, logger, training=False)
     
@@ -59,7 +60,7 @@ def main():
     # This will return a quantized graph
     graph = espdl_quantize_onnx(
         onnx_import_file=onnx_path,
-        espdl_export_file=os.path.join(base_dir, "model", "tmp.espdl"),
+        espdl_export_file=str(MODEL_DIR / "tmp.espdl"),
         calib_dataloader=CalibWrapper(loader, device),
         calib_steps=8,
         input_shape=[1, 1, 48, 48],
