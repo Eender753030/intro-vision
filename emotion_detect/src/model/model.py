@@ -25,14 +25,14 @@ class ConvBlock(nn.Module):
         self.conv_block = nn.Sequential(
             nn.Conv2d(n_channels, n_filters, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(n_filters),
-            nn.PReLU(n_filters),
+            nn.LeakyReLU(0.1, inplace=True),
             nn.Conv2d(n_filters, n_filters, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(n_filters),
-            nn.PReLU(n_filters),
+            nn.LeakyReLU(0.1, inplace=True),
             nn.MaxPool2d(kernel_size=pool_kernel_size),
         )
         
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.conv_block(x)
 
 
@@ -55,15 +55,15 @@ class ResBlock(nn.Module):
             nn.Conv2d(channels, channels, kernel_size=kernel_size, padding=padding),
             nn.BatchNorm2d(channels),
         )
-        self.prelu1 = nn.PReLU(channels)
-        self.prelu2 = nn.PReLU(channels)
+        self.act1 = nn.LeakyReLU(0.1, inplace=True)
+        self.act2 = nn.LeakyReLU(0.1, inplace=True)
         
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         residual = x
-        x = self.prelu1(self.conv1(x))
+        x = self.act1(self.conv1(x))
         x = self.conv2(x)
         x += residual
-        return self.prelu2(x)
+        return self.act2(x)
 
 
 class SimpleCNN(nn.Module):

@@ -3,10 +3,10 @@ device = "cuda" # cuda or cpu
 
 [model]
 num_class = 7
-num_stage = 3
+num_stage = 2
 num_res = 2
-dropout = 0.5
-base_channels = 32
+dropout = 0.3
+base_channels = 8
 
 
 [data]
