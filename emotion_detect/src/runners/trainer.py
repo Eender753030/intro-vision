@@ -120,7 +120,7 @@ class Trainer:
         # Center Loss setup
         self.center_loss = CenterLoss(
             num_classes=config["model"]["num_class"],
-            feat_dim=config["model"]["base_channels"] * 4, # Final channels after GAP
+            feat_dim=config["model"]["base_channels"] * (2 ** (config["model"]["num_stage"] - 1)), # Dynamic final channels after GAP
             use_gpu=(device.type == 'cuda')
         )
         self.optimizer_center = SGD(

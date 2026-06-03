@@ -8,11 +8,11 @@ class CenterLoss(nn.Module):
     'A Discriminative Feature Learning Approach for Deep Face Recognition'
     
     Args:
-        num_classes (int): number of classes.
-        feat_dim (int): feature dimension.
-        use_gpu (bool): whether to use GPU.
+        num_classes: number of classes.
+        feat_dim: feature dimension.
+        use_gpu: whether to use GPU.
     """
-    def __init__(self, num_classes=7, feat_dim=128, use_gpu=True):
+    def __init__(self, num_classes: int = 7, feat_dim: int = 128, use_gpu: bool = True):
         super(CenterLoss, self).__init__()
         self.num_classes = num_classes
         self.feat_dim = feat_dim
@@ -23,7 +23,7 @@ class CenterLoss(nn.Module):
         else:
             self.centers = nn.Parameter(torch.randn(self.num_classes, self.feat_dim))
 
-    def forward(self, x, labels):
+    def forward(self, x: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: feature matrix with shape (batch_size, feat_dim).

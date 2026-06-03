@@ -6,9 +6,7 @@ from pathlib import Path
 from config import get_config
 from model import get_model
 from logger import get_logger
-from trainer import Trainer
-from tester import Tester
-from inferencer import Inferencer
+from runners import Trainer, Tester, Inferencer
 from utils.paths import ROOT, add_src_to_path
 
 add_src_to_path()
