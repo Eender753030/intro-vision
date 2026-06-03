@@ -1,12 +1,13 @@
 #pragma once
 
-#include "dl_model_base.hpp"
-#include "dl_tensor_base.hpp"
-#include "dl_image_define.hpp"
-#include <vector>
-#include <string>
+#include <array>
 
-class EmotionModel : public dl::Model {
+#include "dl_model_base.hpp"
+#include "dl_image_define.hpp"
+#include "utils/emotion_type.hpp"
+
+
+class EmotionModel: public dl::Model {
 public:
     /**
      * @brief Construct a new Emotion Model object
@@ -23,10 +24,14 @@ public:
     /**
      * @brief Get the top emotion name and probability
      */
-    const char* get_top_emotion(float &confidence);
+    EmotionType get_top_emotion(float &confidence);
+
+    /**
+     * @brief Get the full emotion probabilities array
+     */
+    const std::array<float, NUM_CLASSES> &get_probabilities() const { return m_probs; }
 
 private:
-    static const char* EMOTION_LABELS[7];
-    float m_probs[7];
-    int m_max_idx;
+    std::array<float, NUM_CLASSES> m_probs;
+    uint8_t m_max_idx;
 };
