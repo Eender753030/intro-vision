@@ -15,9 +15,10 @@ emo_onnx_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_onnx.py"
 emo_espdl_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_espdl.py"
 emo_espdl_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_espdl.py"
 
-espdl_to_firmware = "nm $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl $PIXI_PROJECT_ROOT/firmware/main/emotion_model_data.h"
+espdl_to_firmware = "xxd -i $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl > $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h && sed -i -E '1s/unsigned char/__attribute__((aligned(16))) const unsigned char/; s/_[a-zA-Z0-9_]+_model_espdl/emotion_model_data/g' $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h"
 esp32_hw_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_esp32_hardware.py"
 
+esp_install = "bash $IDF_PATH/install.sh esp32s3"
 esp_init = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py set-target esp32s3'"
 esp_clean = "rm -rf $PIXI_PROJECT_ROOT/firmware/build $PIXI_PROJECT_ROOT/firmware/sdkconfig"
 esp_build = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py build'"
@@ -25,6 +26,7 @@ esp_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware &&
 esp_flash_m = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash monitor'"
 esp_monitor = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py monitor'"
 esp_menuconfig = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py menuconfig'"
+debug_ui = "python -m http.server --directory $PIXI_PROJECT_ROOT/debug_dashboard 8000"
 
 [dependencies]
 python = "3.11.*"
@@ -44,7 +46,7 @@ pyserial = ">=3.5,<4"
 
 [pypi-dependencies]
 onnxsim = "==0.4.36"
-esp-ppq = ">=1.2.10, <2"
+esp-ppq = ">=1.2.10, <1.3"
 
 [activation]
-env = { IDF_PATH = "/home/eender/.espressif/v5.4.4/esp-idf", IDF_EXTRA_ACTIONS_PATH = "$PIXI_PROJECT_ROOT/firmware/components/esp-who/tools" }
+env = { IDF_PATH = "/home/$USER/.espressif/v5.4.4/esp-idf", IDF_EXTRA_ACTIONS_PATH = "$PIXI_PROJECT_ROOT/firmware/components/esp-who/tools" }
