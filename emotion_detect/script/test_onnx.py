@@ -1,5 +1,3 @@
-from asyncio import coroutines
-import torch
 import numpy as np
 import os
 import sys
@@ -14,13 +12,13 @@ _src_dir = _script_dir.parent / "src"
 if str(_src_dir) not in sys.path:
     sys.path.append(str(_src_dir))
 
-from utils.paths import LOG_DIR, ROOT
+from utils.paths import LOG_DIR, ROOT, MODEL_DIR
 from dataloader import get_dataloader
 from config import get_config
 from logger import get_logger
 
 def main():
-    model_path = str(ROOT / "model" / "model_simplified.onnx")
+    model_path = str(MODEL_DIR / "model_simplified.onnx")
     logger = get_logger("onnx_test", str(LOG_DIR))
     
     config = get_config()
@@ -31,7 +29,7 @@ def main():
     
     data_path = config["data"]["path"]
     if not os.path.isabs(data_path):
-        data_path = os.path.join(base_dir, data_path)
+        data_path = str(ROOT / data_path)
 
     loader = get_dataloader(data_path, config, logger, training=False)
     

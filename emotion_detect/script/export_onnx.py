@@ -13,6 +13,14 @@ from utils.paths import LOG_DIR, ROOT
 from model import get_model
 from logger import get_logger
 
+class ExportWrapper(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+    def forward(self, x):
+        logits, _ = self.model(x)
+        return logits
+
 def main():
     model_dir = ROOT / "model"
     logger = get_logger("onnx_export", str(LOG_DIR))
@@ -25,8 +33,11 @@ def main():
     model.load_state_dict(checkpoint["model"])
     model.eval()
     
+    # Wrap model to only output logits for ESP-DL compatibility
+    export_model = ExportWrapper(model)
+    
     device = torch.device("cpu")
-    model.to(device)
+    export_model.to(device)
  
     logger.info("Build completed")
     
@@ -36,7 +47,7 @@ def main():
     logger.info(f"Exporting ONNX to {onnx_path}...")
     with torch.no_grad():
         torch.onnx.export(
-            model,
+            export_model,
             dummy_input,
             f=onnx_path,
             export_params=True,

@@ -50,9 +50,9 @@ class Inferencer:
         img = self._load_image().to(self.device)
         
         with torch.no_grad():
-            output = self.model(img)
+            output, _ = self.model(img)
             
-            prob = torch.nn.functional.softmax(output).squeeze()
+            prob = torch.nn.functional.softmax(output, dim=1).squeeze()
 
             _, predicted = torch.max(prob, dim=0)
 
@@ -69,7 +69,8 @@ class Inferencer:
         self._draw_result(img, emotion)
         
     def _load_image(self) -> torch.Tensor:       
-        img = torchvision.io.read_image(str(self.input_path))
+        from torchvision.io import ImageReadMode
+        img = torchvision.io.read_image(str(self.input_path), mode=ImageReadMode.RGB)
         img = img.unsqueeze(0)
         norm_json_path = MODEL_DIR / "normalize_data.json"
         with open(norm_json_path, 'r') as f:

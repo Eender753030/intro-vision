@@ -78,11 +78,15 @@ Transition your PyTorch weights (`.pt`) into optimized edge deployment formats (
     ```
 
 ### Phase 3: ESP32-S3 Firmware Deployment
-Once you have the `.espdl` model, convert it into C++ arrays and compile the ESP-IDF firmware.
+Once you have the `.espdl` model, convert it into C++ arrays, compile, and flash the ESP-IDF firmware.
 
 *   **Generate Model Header**:
     ```bash
     pixi run espdl_to_firmware
+    ```
+*   **Install ESP-IDF target toolchain**:
+    ```bash
+    pixi run esp_install
     ```
 *   **Initialize target as ESP32-S3**:
     ```bash
@@ -108,3 +112,12 @@ Once you have the `.espdl` model, convert it into C++ arrays and compile the ESP
     ```bash
     pixi run esp_menuconfig
     ```
+
+### Phase 4: Local Debug Dashboard
+Visualize predictions, inference benchmarks, and device logs in real-time.
+
+*   **Start Debug Dashboard**:
+    ```bash
+    pixi run debug_ui
+    ```
+    Then navigate to `http://localhost:8000` in your web browser.

@@ -20,3 +20,6 @@ sdkconfig.old
 managed_components/
 
 emotion_model_data.h
+
+.clangd
+compile_commands.json

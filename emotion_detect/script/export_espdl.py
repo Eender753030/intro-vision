@@ -3,12 +3,13 @@ from pathlib import Path
 
 # Bootstrap paths
 import sys
+import os 
 _script_dir = Path(__file__).resolve().parent
 _src_dir = _script_dir.parent / "src"
 if str(_src_dir) not in sys.path:
     sys.path.append(str(_src_dir))
 
-from utils.paths import LOG_DIR, ROOT
+from utils.paths import LOG_DIR, ROOT, MODEL_DIR
 from dataloader import get_dataloader
 from config import get_config
 from logger import get_logger
@@ -27,21 +28,17 @@ def collate_fn(batch):
     return batch
     
 def main():
-    onnx_path = str(ROOT / "model" / "model_simplified.onnx")
-    espdl_path = str(ROOT / "model" / "model.espdl")
     logger = get_logger("espdl_export", str(LOG_DIR))
-    
     config = get_config()
     
-
     data_path = config["data"]["path"]
     if not os.path.isabs(data_path):
-        data_path = os.path.join(base_dir, data_path)
+        data_path = str(ROOT / data_path)
         
-    _, dataloader = get_dataloader(data_path, config, logger, training=True)
+    dataloader = get_dataloader(data_path, config, logger, training=False)
     
-    onnx_path = os.path.join(model_dir, "model_simplified.onnx")
-    espdl_path = os.path.join(model_dir, "model.espdl")
+    onnx_path = str(MODEL_DIR / "model_simplified.onnx")
+    espdl_path = str(MODEL_DIR / "model.espdl")
     
     ppq_graph = espdl_quantize_onnx(
         onnx_import_file=onnx_path,
