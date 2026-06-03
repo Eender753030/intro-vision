@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Intro-Vision - 邊緣 AI 實時偵錯與 Demo 儀表板</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Fullscreen Glowing Alarm Indicator for Haptics -->
+    <div id="haptic-alarm" class="haptic-alarm-overlay">
+        <div class="alarm-content">
+            <div class="alarm-icon">⚠️</div>
+            <h2>觸覺警告觸發 (HAPTIC ALERT)</h2>
+            <p id="alarm-detail">Sadness Pattern: Slow Pulsing Vibration & LED Fade</p>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- HEADER -->
+        <header>
+            <div class="logo-area">
+                <span class="logo-badge">EDGE AI</span>
+                <h1>Intro-<span>Vision</span></h1>
+                <p class="subtitle">Intro-Vision Assistant Developer Console</p>
+            </div>
+            
+            <div class="controls-area">
+                <div class="select-group">
+                    <label for="baudrate">波特率 (Baud Rate)</label>
+                    <select id="baudrate">
+                        <option value="115200" selected>115200</option>
+                        <option value="921600">921600</option>
+                    </select>
+                </div>
+                
+                <button id="btn-connect" class="btn btn-primary">
+                    <span class="btn-icon">⚡</span> 連接設備 (Connect)
+                </button>
+                
+                <div class="status-indicator">
+                    <span id="status-dot" class="dot disconnected"></span>
+                    <span id="status-text">未連線 (Disconnected)</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT -->
+        <main class="grid-layout">
+            
+            <!-- PANEL 1: 相機影像與人臉追蹤 -->
+            <section class="panel-card glass-panel" id="panel-vision">
+                <div class="panel-header">
+                    <h2>實時相機與人臉標定 (Camera & Face Tracking)</h2>
+                    <span class="panel-tag tag-cyan">Core 0: Capture & Detect</span>
+                </div>
+                
+                <div class="panel-body">
+                    <!-- Main Frame Container -->
+                    <div class="video-container">
+                        <canvas id="canvas-main" width="320" height="240"></canvas>
+                        <!-- High Tech HUD Overlay -->
+                        <div class="hud-frame"></div>
+                        <div class="hud-corners">
+                            <span class="c-top-left"></span>
+                            <span class="c-top-right"></span>
+                            <span class="c-bottom-left"></span>
+                            <span class="c-bottom-right"></span>
+                        </div>
+                        <div class="scanner-line"></div>
+                        <div id="no-signal" class="video-overlay">
+                            <div class="overlay-spinner"></div>
+                            <p>等待序列埠影像訊號...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Bounding Box Telemetry -->
+                    <div class="telemetry-grid">
+                        <div class="tel-item">
+                            <span class="tel-label">座標 X</span>
+                            <span class="tel-val" id="val-x">-</span>
+                        </div>
+                        <div class="tel-item">
+                            <span class="tel-label">座標 Y</span>
+                            <span class="tel-val" id="val-y">-</span>
+                        </div>
+                        <div class="tel-item">
+                            <span class="tel-label">框寬 W</span>
+                            <span class="tel-val" id="val-w">-</span>
+                        </div>
+                        <div class="tel-item">
+                            <span class="tel-label">框高 H</span>
+                            <span class="tel-val" id="val-h">-</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 2: AI 特徵圖像與情緒預測 -->
+            <section class="panel-card glass-panel" id="panel-ai">
+                <div class="panel-header">
+                    <h2>AI 特徵裁剪與推論 (AI Input & Prediction)</h2>
+                    <span class="panel-tag tag-purple">Core 1: Inference</span>
+                </div>
+                
+                <div class="panel-body ai-body">
+                    <div class="ai-input-flex">
+                        <!-- 48x48 Cropped Grayscale Preview -->
+                        <div class="crop-preview-box">
+                            <span class="crop-title">AI Grayscale Input (48x48)</span>
+                            <div class="crop-canvas-wrapper">
+                                <canvas id="canvas-face" width="48" height="48"></canvas>
+                                <div class="crop-corners"></div>
+                            </div>
+                        </div>
+
+                        <!-- Top Emotion Decision Bubble -->
+                        <div class="decision-box">
+                            <span class="decision-title">情緒最終決策 (Top Emotion)</span>
+                            <div class="decision-bubble" id="top-emotion-bubble">
+                                <h3 id="top-emotion-name">無人臉</h3>
+                                <p id="top-emotion-conf">Confidence: 0.0%</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Emotion Probability Distribution -->
+                    <div class="emotions-distribution">
+                        <h3>情緒概率分佈 (Probability Distribution)</h3>
+                        <div class="dist-list">
+                            <!-- Happiness -->
+                            <div class="prob-row" data-emotion="Happiness">
+                                <span class="lbl">Happiness</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill happy" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Happiness">0.0%</span>
+                            </div>
+                            <!-- Surprise -->
+                            <div class="prob-row" data-emotion="Surprise">
+                                <span class="lbl">Surprise</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill surprise" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Surprise">0.0%</span>
+                            </div>
+                            <!-- Neutral -->
+                            <div class="prob-row" data-emotion="Neutral">
+                                <span class="lbl">Neutral</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill neutral" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Neutral">0.0%</span>
+                            </div>
+                            <!-- Sadness -->
+                            <div class="prob-row" data-emotion="Sadness">
+                                <span class="lbl">Sadness</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill sadness" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Sadness">0.0%</span>
+                            </div>
+                            <!-- Anger -->
+                            <div class="prob-row" data-emotion="Anger">
+                                <span class="lbl">Anger</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill anger" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Anger">0.0%</span>
+                            </div>
+                            <!-- Fear -->
+                            <div class="prob-row" data-emotion="Fear">
+                                <span class="lbl">Fear</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill fear" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Fear">0.0%</span>
+                            </div>
+                            <!-- Disgust -->
+                            <div class="prob-row" data-emotion="Disgust">
+                                <span class="lbl">Disgust</span>
+                                <div class="bar-container">
+                                    <div class="bar-fill disgust" style="width: 0%"></div>
+                                </div>
+                                <span class="val" id="prob-Disgust">0.0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 3: 遙測數據與防抖狀態 -->
+            <section class="panel-card glass-panel" id="panel-telemetry">
+                <div class="panel-header">
+                    <h2>系統遙測與防抖 (System Telemetry & State)</h2>
+                    <span class="panel-tag tag-green">Profiler</span>
+                </div>
+                <div class="panel-body tel-body">
+                    <div class="tel-stat-row">
+                        <div class="stat-card">
+                            <span class="stat-lbl">AI 推論延遲 (Inference)</span>
+                            <h4 id="stat-latency">-- ms</h4>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-lbl">人臉偵測延遲 (ESP-WHO)</span>
+                            <h4 id="stat-face-latency">-- ms</h4>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-lbl">相機拍攝幀數 (Camera FPS)</span>
+                            <h4 id="stat-fps">-- FPS</h4>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-lbl">內部 SRAM 剩餘</span>
+                            <h4 id="stat-sram">-- KB</h4>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-lbl">外部 PSRAM 剩餘</span>
+                            <h4 id="stat-psram">-- MB</h4>
+                        </div>
+                    </div>
+
+                    <!-- Debouncing Anti-Jitter Status -->
+                    <div class="debounce-status-panel">
+                        <h3>觸覺防抖狀態機 (Debouncing Anti-Jitter State)</h3>
+                        <div class="debounce-grid">
+                            <div class="db-state-item" id="db-state-sustain">
+                                <div class="state-dot"></div>
+                                <span>持續累計中 (Sustaining)</span>
+                            </div>
+                            <div class="db-state-item" id="db-state-cooldown">
+                                <div class="state-dot"></div>
+                                <span>冷卻保護中 (Cooldown)</span>
+                            </div>
+                            <div class="db-state-item active" id="db-state-idle">
+                                <div class="state-dot"></div>
+                                <span>安全空閒 (Safe/Idle)</span>
+                            </div>
+                        </div>
+                        <div class="debounce-progress-container">
+                            <div class="db-lbl-row">
+                                <span>持續負面情緒驗證時間 (100ms 限值)</span>
+                                <span id="db-time-val">0 ms / 100 ms</span>
+                            </div>
+                            <div class="db-bar-bg">
+                                <div id="db-bar-fill" class="db-bar-fill" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PANEL 4: 序列埠終端與系統日誌 -->
+            <section class="panel-card glass-panel" id="panel-logs">
+                <div class="panel-header">
+                    <h2>硬體日誌與終端控制台 (Hardware Logs & Terminal)</h2>
+                    <div class="log-actions">
+                        <label class="chk-container">自動滾動 (Auto Scroll)
+                            <input type="checkbox" id="chk-autoscroll" checked>
+                            <span class="checkmark"></span>
+                        </label>
+                        <button id="btn-clear-log" class="btn btn-small">清除日誌 (Clear)</button>
+                    </div>
+                </div>
+                <div class="panel-body log-body">
+                    <div class="log-console" id="log-console">
+                        <div class="log-line system-line">[SYSTEM] 歡迎使用 Intro-Vision 實時邊緣 AI 偵錯儀表板。請設定波特率並點選右上角連接設備！</div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        
+        <footer>
+            <p>© 2026 Intro-Vision Project. Powered by ESP32-S3, ESP-WHO, & ESP-DL Web Serial Console.</p>
+        </footer>
+    </div>
+
+    <script src="app.js?v=1.0.4"></script>
+</body>
+</html>
