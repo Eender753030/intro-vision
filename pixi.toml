@@ -3,7 +3,7 @@ authors = ["Eender753030 <ender303030@gmail.com>"]
 channels = ["pytorch", "nvidia", "conda-forge", "pypi"]
 name = "intro-vision"
 platforms = ["linux-64"]
-version = "0.2.0"
+version = "0.3.0"
 
 [tasks]
 emo_train = "python $PIXI_PROJECT_ROOT/emotion_detect/src/main.py"
@@ -16,7 +16,6 @@ emo_espdl_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_espdl
 emo_espdl_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_espdl.py"
 
 espdl_to_firmware = "xxd -i $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl > $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h && sed -i -E '1s/unsigned char/__attribute__((aligned(16))) const unsigned char/; s/_[a-zA-Z0-9_]+_model_espdl/emotion_model_data/g' $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h"
-esp32_hw_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_esp32_hardware.py"
 
 esp_install = "bash $IDF_PATH/install.sh esp32s3"
 esp_init = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py set-target esp32s3'"
@@ -26,6 +25,7 @@ esp_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware &&
 esp_flash_m = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash monitor'"
 esp_monitor = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py monitor'"
 esp_menuconfig = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py menuconfig'"
+
 debug_ui = "python -m http.server --directory $PIXI_PROJECT_ROOT/debug_dashboard 8000"
 
 [dependencies]

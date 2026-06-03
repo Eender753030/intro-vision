@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.3.0] - 2026-06-03
+
+### Added
+- **Debug Dashboard**: Implemented a localhost real-time debug UI (`debug_dashboard/`) with HTML/JS/CSS to visualize model predictions, performance, and hardware states.
+- **Haptic Feedback**: Developed DRV2605L haptic motor driver (`MotorDriver` class) mapping distinct vibration patterns to all 7 emotions.
+- **Performance Profiling**: Created a C++ performance profiling helper (`PerformanceProfiler`) in the ESP32 firmware to track inference and preprocessing latencies.
+- **Firmware Emotion Type**: Defined a clean `EmotionType` enum class representing the 7 emotion categories.
+- **Camera & Haptics Pin Configuration**: Documented hardware pin mappings for OV2640 and DRV2605L with ESP32-S3, integrating them into `main.cpp`.
+- **New Pixi Tasks**: Added `debug_ui` (starts local server for debug dashboard) and `esp_install` (installs ESP-IDF dependencies) to `pixi.toml`.
+
+### Changed
+- **Bilinear Interpolation Preprocessing**: Replaced old crop/resize logic with bilinear interpolation supporting `RGB565` format directly in firmware.
+- **Firmware Code Refactoring**: Reorganized model deployment code layout, refactored `EmotionModel` integration, and cleaned up unused testing arrays and configurations.
+- **Model Array Alignment**: Optimized the `espdl_to_firmware` script to include `__attribute__((aligned(16))) const` for ESP-DL data alignment.
+
+### Fixed
+- **Path and Export Issues**: Fixed PyTorch-to-ESP-DL pipeline path parsing and model export error script paths.
+
+---
+
 ## [0.2.0] - 2026-05-17
 
 ### Added
