@@ -2,25 +2,26 @@ device = "cuda" # cuda or cpu
 
 
 [model]
-num_class = 7
-num_stage = 2
-num_res = 2
+num_classes = 7
 dropout = 0.3
-base_channels = 8
+num_stages = 3
+num_res_blocks = 2
+base_channels = 16
+use_dwconv = true # Use Depthwise Separable Convolution
 
 
 [data]
 path = "archive"
-batch_size = 128
+batch_size = 32
 num_workers = 6
 
 
 [train]
-epochs = 500
-lr = 1e-2
+epochs = 200
+lr = 1e-3
 weight_decay = 1e-3
 label_smoothing = 0.1 # 0.0 ~ 1.0
-mixup_alpha = 0.2 # 0.0 ~ 1.0
+mixup_alpha = 0.0 # 0.0 ~ 1.0
 
 
 [train.early_stop]
@@ -28,7 +29,9 @@ enable = true
 patience = 20
 min_delta = 1e-3
 
-
 [train.loss]
-center_loss_weight = 0.01
-center_loss_lr = 0.5
+
+[train.loss.center_loss]
+enable = true
+weight = 0.01
+lr = 0.5
