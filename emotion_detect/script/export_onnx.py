@@ -28,7 +28,7 @@ def main():
     logger.info("Building PyTorch model...")
     
     checkpoint_path = model_dir / "best_model.pt"
-    checkpoint = torch.load(checkpoint_path, weights_only=True)
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     model = get_model(checkpoint["config"])
     model.load_state_dict(checkpoint["model"])
     model.eval()

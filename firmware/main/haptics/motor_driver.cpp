@@ -54,9 +54,7 @@ static void haptic_pattern_task(void *pvParameters) {
             drv2605_write_reg(0x06, 1);    // Strong Click 2
             drv2605_write_reg(0x07, 0x85); // Delay 50ms
             drv2605_write_reg(0x08, 1);    // Strong Click 3
-            drv2605_write_reg(0x09, 0x85); // Delay 50ms
-            drv2605_write_reg(0x0A, 1);    // Strong Click 3
-            drv2605_write_reg(0x0B, 0);    // End sequence
+            drv2605_write_reg(0x09, 0);    // End sequence
             drv2605_write_reg(0x0C, 1);    // GO!
             duration_ms = 400;
             break;
@@ -76,14 +74,14 @@ static void haptic_pattern_task(void *pvParameters) {
             break;
 
         case EmotionType::DISGUST:
-            ESP_LOGI(TAG, "[ACTUATOR] >>> DISGUST: Triggering DRV2605L Triple Rough Buzz 60%% (連續長 3 倍粗糙不適震感) <<<");
+            ESP_LOGI(TAG, "[ACTUATOR] >>> DISGUST: Triggering DRV2605L Rough Buzz 60%% (連續長 7 倍粗糙不適震感) <<<");
             drv2605_write_reg(0x04, 22);   // Rough Buzz 60% - Part 1
             drv2605_write_reg(0x05, 22);   // Rough Buzz 60% - Part 2
-            drv2605_write_reg(0x06, 22);   // Rough Buzz 60% - Part 3 (Chained 3x for 3x longer feel)
-            drv2605_write_reg(0x07, 22);   // Rough Buzz 60% - Part 3 (Chained 3x for 3x longer feel)
-            drv2605_write_reg(0x08, 22);   // Rough Buzz 60% - Part 3 (Chained 3x for 3x longer feel)
-            drv2605_write_reg(0x09, 22);   // Rough Buzz 60% - Part 3 (Chained 3x for 3x longer feel)
-            drv2605_write_reg(0x0A, 22);   // Rough Buzz 60% - Part 3 (Chained 3x for 3x longer feel)
+            drv2605_write_reg(0x06, 22);   // Rough Buzz 60% - Part 3 
+            drv2605_write_reg(0x07, 22);   // Rough Buzz 60% - Part 4 
+            drv2605_write_reg(0x08, 22);   // Rough Buzz 60% - Part 5 
+            drv2605_write_reg(0x09, 22);   // Rough Buzz 60% - Part 6 
+            drv2605_write_reg(0x0A, 22);   // Rough Buzz 60% - Part 7 
             drv2605_write_reg(0x0B, 0);    // End sequence
             drv2605_write_reg(0x0C, 1);    // GO!
             duration_ms = 2000;
@@ -106,6 +104,16 @@ static void haptic_pattern_task(void *pvParameters) {
             duration_ms = 1500;
             break;
             
+        case EmotionType::HAPPINESS:
+            ESP_LOGI(TAG, "[ACTUATOR] >>> HAPPINESS: Triggering DRV2605L Gentle Soft Double Pulse (溫和雙脈衝) <<<");
+            drv2605_write_reg(0x04, 8);    // Soft Bump 60% - warm first gentle pulse
+            drv2605_write_reg(0x05, 0x85); // Delay 50ms between pulses
+            drv2605_write_reg(0x06, 8);    // Soft Bump 60% - warm second gentle pulse
+            drv2605_write_reg(0x07, 0);    // End sequence
+            drv2605_write_reg(0x0C, 1);    // GO!
+            duration_ms = 400;
+            break;
+
         default:
             break;
     }
@@ -177,7 +185,7 @@ void trigger(EmotionType emotion) {
         return;
     }
     
-    if (emotion == EmotionType::HAPPINESS || emotion == EmotionType::NEUTRAL) {
+    if (emotion == EmotionType::NEUTRAL) {
         return; // Silent
     }
     

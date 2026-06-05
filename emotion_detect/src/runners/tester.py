@@ -50,8 +50,6 @@ class Tester:
         self.logger.info("Warnup first...")
         with torch.no_grad():
             output, _ = self.model(dummy_input)
-            
-            prob = torch.nn.functional.softmax(output, dim=1).squeeze()
         
         self.logger.info("Ready!")
         

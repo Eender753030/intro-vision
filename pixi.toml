@@ -3,7 +3,7 @@ authors = ["Eender753030 <ender303030@gmail.com>"]
 channels = ["pytorch", "nvidia", "conda-forge", "pypi"]
 name = "intro-vision"
 platforms = ["linux-64"]
-version = "0.3.0"
+version = "0.4.0"
 
 [tasks]
 emo_train = "python $PIXI_PROJECT_ROOT/emotion_detect/src/main.py"
@@ -14,17 +14,20 @@ emo_onnx_sim = "python -m onnxsim $PIXI_PROJECT_ROOT/emotion_detect/model/model.
 emo_onnx_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_onnx.py"
 emo_espdl_export = "python $PIXI_PROJECT_ROOT/emotion_detect/script/export_espdl.py"
 emo_espdl_test = "python $PIXI_PROJECT_ROOT/emotion_detect/script/test_espdl.py"
+emo_export = "pixi run emo_onnx_export && pixi run emo_onnx_sim && pixi run emo_espdl_export"
 
 espdl_to_firmware = "xxd -i $PIXI_PROJECT_ROOT/emotion_detect/model/model.espdl > $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h && sed -i -E '1s/unsigned char/__attribute__((aligned(16))) const unsigned char/; s/_[a-zA-Z0-9_]+_model_espdl/emotion_model_data/g' $PIXI_PROJECT_ROOT/firmware/main/model/emotion_model_data.h"
 
 esp_install = "bash $IDF_PATH/install.sh esp32s3"
 esp_init = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py set-target esp32s3'"
 esp_clean = "rm -rf $PIXI_PROJECT_ROOT/firmware/build $PIXI_PROJECT_ROOT/firmware/sdkconfig"
-esp_build = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py build'"
-esp_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash'"
-esp_flash_m = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py flash monitor'"
+esp_build = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py -DTEST_MODEL_PERFORMANCE=0 build'"
+esp_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py -DTEST_MODEL_PERFORMANCE=0 flash'"
+esp_flash_m = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py -DTEST_MODEL_PERFORMANCE=0 flash monitor'"
 esp_monitor = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py monitor'"
 esp_menuconfig = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py menuconfig'"
+test_perf_build = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py -DTEST_MODEL_PERFORMANCE=1 build'"
+test_perf_flash = "bash -c '. $IDF_PATH/export.sh && cd $PIXI_PROJECT_ROOT/firmware && idf.py -DTEST_MODEL_PERFORMANCE=1 flash monitor'"
 
 debug_ui = "python -m http.server --directory $PIXI_PROJECT_ROOT/debug_dashboard 8000"
 
