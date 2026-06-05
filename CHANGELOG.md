@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.4.0] - 2026-06-05
+
+### Added
+- **Happiness Haptic Feedback**: Added gentle double pulse vibration pattern for Happiness (`EmotionType::HAPPINESS`) in the firmware and mapping description in the UI.
+- **Inference Benchmarking Program**: Implemented a standalone C++ performance testing suite (`model_performace.cpp`) on the ESP32 to benchmark model latencies.
+
+### Changed
+- **Depthwise Separable Convolution**: Added support for training and exporting Depthwise Separable CNN models, and migrated model activations to `ReLU6` to optimize edge compute.
+- **LeakyReLU Activations**: Swapped standard `PReLU` with `LeakyReLU` in traditional CNN modules to improve inference times on the ESP32.
+- **Base64 Serial Protocol**: Migrated debug image transmission from HEX to Base64, reducing serial overhead by ~33% and increasing UI frame rate.
+- **Optimized Baud Rate & JPEG FPS**: Increased ESP32 console baud rate to 921600 bps and throttled JPEG transmission when a face is detected (once every 2 frames) to maximize system responsiveness and prevent UART bottlenecks.
+- **Refactored Project Architecture**: Restructured the Python training codebase, separating execution logic into modular `runners/` (trainer and tester) and clean modules.
+- **Configurable Center Loss**: Refactored the training pipeline to allow turning Center Loss on/off via configuration.
+
+---
+
 ## [0.3.0] - 2026-06-03
 
 ### Added
