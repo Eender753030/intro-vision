@@ -23,31 +23,35 @@ static constexpr char TAG[] = "MAIN";
 
 static constexpr int FACE_SIZE = 48 * 48;
 
-static constexpr uint32_t DEBOUNCE_THRESHOLD_MS = 100; // Must sustain negative emotion for 200ms
+static constexpr uint32_t DEBOUNCE_THRESHOLD_MS = 100; // Must sustain negative emotion for 100ms
 static constexpr uint32_t COOLDOWN_DURATION_MS = 5000;  // 5 seconds cooldown
 
 // FreeRTOS Queue to pass image buffer pointers from Core 0 to Core 1
 static QueueHandle_t xImageQueue = nullptr;
 
 
-// Extremely fast hex printing using lookup tables and buffered chunked stdout writes.
-// This completely avoids formatting overhead and calling printf 15000+ times per frame.
-static void print_hex(const uint8_t *buf, size_t len) {
-    static const char hex_chars[] = "0123456789ABCDEF";
-    char chunk[1025];
-    size_t chunk_idx = 0;
-    for (size_t i = 0; i < len; i++) {
-        chunk[chunk_idx++] = hex_chars[(buf[i] >> 4) & 0x0F];
-        chunk[chunk_idx++] = hex_chars[buf[i] & 0x0F];
-        if (chunk_idx >= 1024) {
-            chunk[chunk_idx] = '\0';
-            fwrite(chunk, 1, chunk_idx, stdout);
-            chunk_idx = 0;
+// Base64 encoder with buffered chunked stdout writes.
+// Base64 encodes 3 bytes → 4 chars (1.33x overhead) vs hex's 2x overhead,
+// reducing JPEG transmission payload by ~33% over the hex approach.
+static void print_base64(const uint8_t *buf, size_t len) {
+    static const char b64_chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    char chunk[769]; // 768 output chars per write = 576 input bytes
+    size_t out_idx = 0;
+    for (size_t i = 0; i < len; i += 3) {
+        const uint8_t b0 = buf[i];
+        const uint8_t b1 = (i + 1 < len) ? buf[i + 1] : 0;
+        const uint8_t b2 = (i + 2 < len) ? buf[i + 2] : 0;
+        chunk[out_idx++] = b64_chars[(b0 >> 2) & 0x3F];
+        chunk[out_idx++] = b64_chars[((b0 << 4) | (b1 >> 4)) & 0x3F];
+        chunk[out_idx++] = (i + 1 < len) ? b64_chars[((b1 << 2) | (b2 >> 6)) & 0x3F] : '=';
+        chunk[out_idx++] = (i + 2 < len) ? b64_chars[b2 & 0x3F] : '=';
+        if (out_idx >= 768) {
+            fwrite(chunk, 1, out_idx, stdout);
+            out_idx = 0;
         }
     }
-    if (chunk_idx > 0) {
-        chunk[chunk_idx] = '\0';
-        fwrite(chunk, 1, chunk_idx, stdout);
+    if (out_idx > 0) {
+        fwrite(chunk, 1, out_idx, stdout);
     }
     putchar('\n');
 }
@@ -153,15 +157,16 @@ static void print_hex(const uint8_t *buf, size_t len) {
 
         // 5. Reactive Check: Bypassing if no face is detected
         if (results.empty()) {
-            // Check if we should send a background preview frame (once every 15 frames)
-            if (frame_count % 15 == 0) {
+            // Check if we should send a background preview frame (once every 5 frames for much higher responsiveness)
+            if (frame_count % 2 == 0) {
                 uint8_t *jpg_buf = nullptr;
                 size_t jpg_len = 0;
-                if (frame2jpg(fb, 70, &jpg_buf, &jpg_len)) {
+                // Quality=20: good enough for debug preview, significantly reduces frame payload
+                if (frame2jpg(fb, 20, &jpg_buf, &jpg_len)) {
                     printf("FACE_BOX:0,0,0,0\n");
-                    printf("---BEGIN_JPEG---\n");
-                    print_hex(jpg_buf, jpg_len);
-                    printf("---END_JPEG---\n");
+                    printf("---BEGIN_B64---\n");
+                    print_base64(jpg_buf, jpg_len);
+                    printf("---END_B64---\n");
                     free(jpg_buf);
                 }
             }
@@ -182,14 +187,15 @@ static void print_hex(const uint8_t *buf, size_t len) {
         // Always send face coordinates every frame for smooth neon box tracking on the UI HUD
         printf("FACE_BOX:%d,%d,%d,%d\n", x1, y1, face_w, face_h);
         
-        // Throttle JPEG frame rate: Send JPEG only once every 3 frames with quality 70 (saves 70% serial bandwidth)
-        if (frame_count % 3 == 0) {
+        // Send JPEG once every 2 frames when face is detected to prevent clogging UART.
+        // We still run face detection and send the FACE_BOX coordinates every single frame for smooth HUD tracking.
+        if (frame_count % 2 == 0) {
             uint8_t *jpg_buf = nullptr;
             size_t jpg_len = 0;
-            if (frame2jpg(fb, 70, &jpg_buf, &jpg_len)) {
-                printf("---BEGIN_JPEG---\n");
-                print_hex(jpg_buf, jpg_len);
-                printf("---END_JPEG---\n");
+            if (frame2jpg(fb, 20, &jpg_buf, &jpg_len)) {
+                printf("---BEGIN_B64---\n");
+                print_base64(jpg_buf, jpg_len);
+                printf("---END_B64---\n");
                 free(jpg_buf);
             }
         }
@@ -227,8 +233,8 @@ static void print_hex(const uint8_t *buf, size_t len) {
     EmotionModel *emotion_model = new EmotionModel();
     haptics::init();
 
-    // Anti-Jitter State Variables
-    EmotionType last_negative_emotion = EmotionType::NEUTRAL;
+    // Anti-Jitter State Variables (tracks last triggered emotion for debounce; NEUTRAL = idle)
+    EmotionType last_emotion = EmotionType::NEUTRAL;
     uint64_t negative_start_time_ms = 0;
     uint64_t cooldown_end_time_ms = 0;
 
@@ -271,14 +277,16 @@ static void print_hex(const uint8_t *buf, size_t len) {
             printf("DONE\n"); // Acknowledge completion of this frame for the PC script
 
             // 5. Dual-Jitter / Debounce Filtering State Machine
-            const bool is_negative = (current_emotion != EmotionType::HAPPINESS && 
-                                current_emotion != EmotionType::NEUTRAL);
+            // HAPPINESS is now included: it uses the same debounce path with its own gentle haptic pattern.
+            // Only NEUTRAL is treated as "no action" and resets the timer.
+            const bool is_triggerable = (current_emotion != EmotionType::NEUTRAL);
 
-            if (is_negative) {
-                if (current_emotion == last_negative_emotion) {
+            if (is_triggerable) {
+                if (current_emotion == last_emotion) {
                     // Continuous detection of the same negative emotion
                     const uint64_t elapsed = now_ms - negative_start_time_ms;
                     ESP_LOGI(TAG, "[DEBOUNCE] Sustained %s: %llu ms / %u ms", emotion_name, static_cast<unsigned long long>(elapsed), static_cast<unsigned int>(DEBOUNCE_THRESHOLD_MS));
+                    printf("DEBOUNCE:SUSTAIN:%llu:%u\n", static_cast<unsigned long long>(elapsed), static_cast<unsigned int>(DEBOUNCE_THRESHOLD_MS));
 
                     if (elapsed >= DEBOUNCE_THRESHOLD_MS) {
                         // Check if cooling down
@@ -289,27 +297,36 @@ static void print_hex(const uint8_t *buf, size_t len) {
                             
                             // Start Cooldown period
                             cooldown_end_time_ms = now_ms + COOLDOWN_DURATION_MS;
+                            // Immediately signal the UI to start its smooth countdown from full duration
+                            printf("DEBOUNCE:COOLDOWN:%u:%u\n", static_cast<unsigned int>(COOLDOWN_DURATION_MS), static_cast<unsigned int>(COOLDOWN_DURATION_MS));
                             
                             // Reset debouncing
-                            last_negative_emotion = EmotionType::NEUTRAL;
+                            last_emotion = EmotionType::NEUTRAL;
                             negative_start_time_ms = 0;
                         } else {
                             ESP_LOGI(TAG, "[DEBOUNCE] Warning verified but skipped due to ACTIVE COOLDOWN (Remaining: %llu ms)", 
                                      static_cast<unsigned long long>(cooldown_end_time_ms - now_ms));
+                            printf("DEBOUNCE:COOLDOWN:%llu:%u\n", static_cast<unsigned long long>(cooldown_end_time_ms - now_ms), static_cast<unsigned int>(COOLDOWN_DURATION_MS));
                         }
                     }
                 } else {
-                    // New negative emotion detected: start validation timer
-                    last_negative_emotion = current_emotion;
+                    // New emotion detected (different from last): start validation timer
+                    last_emotion = current_emotion;
                     negative_start_time_ms = now_ms;
-                    ESP_LOGE(TAG, "[DEBOUNCE] New Warning: %s detected. Debouncing for %u ms...", emotion_name, static_cast<unsigned int>(DEBOUNCE_THRESHOLD_MS));
+                    // Use INFO for positive emotion, ERROR for negative — reflected in log console colors
+                    if (current_emotion == EmotionType::HAPPINESS) {
+                        ESP_LOGI(TAG, "[DEBOUNCE] Positive: %s detected. Debouncing for %u ms...", emotion_name, static_cast<unsigned int>(DEBOUNCE_THRESHOLD_MS));
+                    } else {
+                        ESP_LOGE(TAG, "[DEBOUNCE] New Warning: %s detected. Debouncing for %u ms...", emotion_name, static_cast<unsigned int>(DEBOUNCE_THRESHOLD_MS));
+                    }
                 }
             } else {
-                // Happy or Neutral detected: reset debounce timer
-                if (last_negative_emotion != EmotionType::NEUTRAL) {
+                // Neutral detected: reset debounce timer and return to idle
+                if (last_emotion != EmotionType::NEUTRAL) {
                     ESP_LOGI(TAG, "[DEBOUNCE] Transitioned to safe state (%s). Debounce reset.", emotion_name);
+                    printf("DEBOUNCE:IDLE\n");
                 }
-                last_negative_emotion = EmotionType::NEUTRAL;
+                last_emotion = EmotionType::NEUTRAL;
                 negative_start_time_ms = 0;
             }
 

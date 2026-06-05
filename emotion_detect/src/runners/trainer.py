@@ -117,18 +117,23 @@ class Trainer:
             eta_min=1e-6
         )
 
-        # Center Loss setup
-        self.center_loss = CenterLoss(
-            num_classes=config["model"]["num_class"],
-            feat_dim=config["model"]["base_channels"] * 4, # Final channels after GAP
-            use_gpu=(device.type == 'cuda')
-        )
-        self.optimizer_center = SGD(
-            self.center_loss.parameters(),
-            lr=config["train"]["loss"]["center_loss_lr"]
-        )
-        self.center_loss_weight = config["train"]["loss"]["center_loss_weight"]
-        
+        if config["train"]["loss"]["center_loss"]["enable"]:
+            feat_dim = config["model"]["base_channels"] * (2 ** (config["model"]["num_stages"] - 1))
+  
+            # Center Loss setup
+            self.center_loss = CenterLoss(
+                num_classes=config["model"]["num_classes"],
+                feat_dim=feat_dim,
+                use_gpu=(device.type == 'cuda')
+            )
+            self.optimizer_center = SGD(
+                self.center_loss.parameters(),
+                lr=config["train"]["loss"]["center_loss"]["lr"]
+            )
+            self.center_loss_weight = config["train"]["loss"]["center_loss"]["weight"]
+        else:
+            self.center_loss = None
+            
         os.makedirs(MODEL_DIR, exist_ok=True)
 
         self.logger.info(f"Model summary:\n{summary(self.model, (1, 1, 48, 48), verbose=0)}")
@@ -194,23 +199,27 @@ class Trainer:
                 targets_a, targets_b, lam = labels, labels, 1.0
             
             self.optimizer.zero_grad()
-            self.optimizer_center.zero_grad()
+            if self.center_loss is not None:
+                self.optimizer_center.zero_grad()
             
             logits, features = self.model(images)
             
             # Mixed Loss Calculation
-            l_ce = lam * self.loss(logits, targets_a) + (1 - lam) * self.loss(logits, targets_b)
-            l_center = lam * self.center_loss(features, targets_a) + (1 - lam) * self.center_loss(features, targets_b)
-            loss = l_ce + self.center_loss_weight * l_center
+            loss = lam * self.loss(logits, targets_a) + (1 - lam) * self.loss(logits, targets_b)
+            if self.center_loss is not None:
+                l_center = lam * self.center_loss(features, targets_a) + (1 - lam) * self.center_loss(features, targets_b)
+                loss += self.center_loss_weight * l_center
             
             loss.backward()
             
             self.optimizer.step()
-            # Multiple centers by inverse of learning rate to keep them in scale? 
-            # No, standard center loss optimizer handles it.
-            for param in self.center_loss.parameters():
-                param.grad.data *= (1. / self.center_loss_weight)
-            self.optimizer_center.step()
+            
+            if self.center_loss is not None:
+                # Multiple centers by inverse of learning rate to keep them in scale? 
+                # No, standard center loss optimizer handles it.
+                for param in self.center_loss.parameters():
+                    param.grad.data *= (1. / self.center_loss_weight)
+                self.optimizer_center.step()
             
             running_loss += loss.item() * images.size(0)
             

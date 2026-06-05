@@ -928,6 +928,22 @@ header h1 span {
     animation: flash-alarm 0.4s infinite alternate;
 }
 
+/* Positive emotion override (Happiness) — warm green instead of red alert */
+.haptic-alarm-overlay.happiness {
+    background: rgba(20, 180, 60, 0.12);
+    border-color: rgba(80, 255, 110, 0.55);
+    box-shadow: inset 0 0 100px rgba(40, 220, 80, 0.28);
+}
+
+.haptic-alarm-overlay.happiness .alarm-content {
+    border-color: rgba(80, 255, 110, 0.4);
+    box-shadow: 0 10px 50px rgba(40, 220, 80, 0.2);
+}
+
+.haptic-alarm-overlay.happiness h2 {
+    color: #4dff80;
+}
+
 .alarm-content {
     background: #0c0b11;
     border: 1px solid rgba(255, 0, 0, 0.5);

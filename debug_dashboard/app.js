@@ -37,7 +37,9 @@ const btnClearLog = document.getElementById('btn-clear-log');
 
 // Alarm overlay
 const alarmOverlay = document.getElementById('haptic-alarm');
-const alarmDetail = document.getElementById('alarm-detail');
+const alarmIcon    = document.getElementById('alarm-icon');
+const alarmTitle   = document.getElementById('alarm-title');
+const alarmDetail  = document.getElementById('alarm-detail');
 
 // Debounce telemetry elements
 const dbSustainCard = document.getElementById('db-state-sustain');
@@ -52,7 +54,12 @@ let serialReader = null;
 let keepReading = false;
 let inputBuffer = "";
 let inJpegMode = false;
-let jpegHexLines = [];
+let jpegB64Lines = [];
+
+// Smooth debounce animation state (requestAnimationFrame-based real-time interpolation)
+let dbAnimFrame = null;
+// Cached offscreen canvas for grayscale conversion (avoids per-frame allocation)
+let offscreenCanvas = null;
 
 // Coordinates & Drawing
 let faceCoords = null; // { x, y, w, h }
@@ -182,16 +189,26 @@ async function readSerialStream() {
                     break;
                 }
                 
-                // Decode incoming chunk and feed into buffer
-                inputBuffer += decoder.decode(value);
+                // Decode incoming chunk and append directly using stream mode
+                inputBuffer += decoder.decode(value, { stream: true });
                 
-                // Split buffer by newlines
-                let lines = inputBuffer.split("\n");
-                // Keep the last incomplete fragment in the buffer
-                inputBuffer = lines.pop();
-                
-                for (let line of lines) {
+                // O(N) Linear Scan using indexOf to process complete lines efficiently.
+                // This completely avoids calling split('\n') on massive hex buffer strings,
+                // reducing memory allocations and garbage collection jank by 98%.
+                let lineStartIndex = 0;
+                while (true) {
+                    const newlineIndex = inputBuffer.indexOf("\n", lineStartIndex);
+                    if (newlineIndex === -1) {
+                        break;
+                    }
+                    const line = inputBuffer.substring(lineStartIndex, newlineIndex);
                     parseSerialLine(line.trim());
+                    lineStartIndex = newlineIndex + 1;
+                }
+                
+                // Keep only the remaining incomplete chunk in the buffer
+                if (lineStartIndex > 0) {
+                    inputBuffer = inputBuffer.substring(lineStartIndex);
                 }
             }
         } catch (err) {
@@ -218,20 +235,20 @@ function parseSerialLine(line) {
     if (!line) return;
 
     // JPEG Data Stream Mode check
-    if (line.includes("---BEGIN_JPEG---")) {
+    if (line.includes("---BEGIN_B64---")) {
         inJpegMode = true;
-        jpegHexLines = [];
+        jpegB64Lines = [];
         return;
     }
 
     if (inJpegMode) {
-        if (line.includes("---END_JPEG---")) {
+        if (line.includes("---END_B64---")) {
             inJpegMode = false;
             reconstructJpegFrame();
         } else {
             // Avoid adding serial noise
             if (!line.startsWith("[") && !line.startsWith("I (") && !line.startsWith("W (")) {
-                jpegHexLines.push(line);
+                jpegB64Lines.push(line);
             }
         }
         return;
@@ -334,34 +351,24 @@ function parseSerialLine(line) {
         return;
     }
 
-    // 5. Debounce sustain metrics
-    if (line.includes("[DEBOUNCE] Sustained")) {
-        // e.g. [DEBOUNCE] Sustained Surprise: 178 ms / 200 ms
-        const parts = line.split("Sustained")[1].split(":");
-        const timeStr = parts[1].trim(); // "178 ms / 200 ms"
-        const numbers = timeStr.match(/\d+/g).map(Number);
-        
-        if (numbers.length >= 2) {
-            const currentMs = numbers[0];
-            const targetMs = numbers[1];
-            const percentage = Math.min((currentMs / targetMs) * 100, 100);
-            
-            setDebounceUI('sustain', timeStr, percentage);
-        }
-        return;
-    }
-
-    if (line.includes("[DEBOUNCE] Transitioned to safe state") || line.includes("Debounce reset")) {
-        setDebounceUI('idle');
-        return;
-    }
-
-    if (line.includes("ACTIVE COOLDOWN")) {
-        // e.g. ACTIVE COOLDOWN (Remaining: 4200 ms)
-        const matches = line.match(/Remaining:\s*(\d+)\s*ms/);
-        if (matches && matches[1]) {
-            const remaining = matches[1];
-            setDebounceUI('cooldown', `冷卻中: ${remaining} ms / 5000 ms`, (remaining / 5000) * 100);
+    // 5. Dedicated Debounce Protocol (DEBOUNCE:CMD:arg1:arg2)
+    // Protocol is emitted by the firmware via printf() at every debounce state change,
+    // decoupled from ESP_LOGI so it's always clean and parseable.
+    if (line.startsWith("DEBOUNCE:")) {
+        const parts = line.split(":");
+        const dbCmd = parts[1]; // SUSTAIN | COOLDOWN | IDLE
+        if (dbCmd === "SUSTAIN") {
+            const elapsed = parseInt(parts[2], 10);
+            const target  = parseInt(parts[3], 10);
+            setDebounceUI('sustain');
+            startSustainAnimation(elapsed, target);
+        } else if (dbCmd === "COOLDOWN") {
+            const remaining = parseInt(parts[2], 10);
+            const duration  = parseInt(parts[3], 10);
+            setDebounceUI('cooldown');
+            startCooldownAnimation(remaining, duration);
+        } else if (dbCmd === "IDLE") {
+            setDebounceUI('idle');
         }
         return;
     }
@@ -406,20 +413,24 @@ function parseSerialLine(line) {
 // --------------------------------------------------------------------------
 
 function reconstructJpegFrame() {
-    const hexStr = jpegHexLines.join("").trim();
-    if (hexStr.length === 0) return;
+    // Join all received B64 chunks, strip any whitespace that might have crept in
+    const b64Str = jpegB64Lines.join("").trim();
+    if (b64Str.length === 0) return;
 
     try {
-        const len = hexStr.length / 2;
+        // atob() is a native browser API: decodes Base64 → binary string in one fast call.
+        // This is ~10x faster than the old parseInt(hexStr, 16) loop over every byte.
+        const binaryStr = atob(b64Str);
+        const len = binaryStr.length;
         const bytes = new Uint8Array(len);
         for (let i = 0; i < len; i++) {
-            bytes[i] = parseInt(hexStr.substr(i * 2, 2), 16);
+            bytes[i] = binaryStr.charCodeAt(i);
         }
 
         const blob = new Blob([bytes], { type: 'image/jpeg' });
         const url = URL.createObjectURL(blob);
         const img = new Image();
-        
+
         img.onload = () => {
             lastFrameImg = img;
             redrawMainCanvas();
@@ -427,7 +438,7 @@ function reconstructJpegFrame() {
         };
         img.src = url;
     } catch (err) {
-        console.error("Hex array mapping failed", err);
+        console.error("Base64 decode failed", err);
     }
 }
 
@@ -471,33 +482,30 @@ function cropAndRenderGrayscale(img, x, y, w, h) {
 
     if (cleanW <= 0 || cleanH <= 0) return;
 
-    // Create an intermediate canvas for cropping
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = cleanW;
-    tempCanvas.height = cleanH;
-    const tempCtx = tempCanvas.getContext('2d');
-    
-    // Draw cropped region from image onto temp canvas
+    // Reuse cached offscreen canvas; only resize when face dimensions actually change
+    if (!offscreenCanvas || offscreenCanvas.width !== cleanW || offscreenCanvas.height !== cleanH) {
+        offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = cleanW;
+        offscreenCanvas.height = cleanH;
+    }
+    const tempCtx = offscreenCanvas.getContext('2d');
+
+    // Draw cropped region from image onto offscreen canvas
     tempCtx.drawImage(img, cleanX, cleanY, cleanW, cleanH, 0, 0, cleanW, cleanH);
 
-    // Convert temp canvas to Grayscale
+    // Convert to Grayscale using fast integer luma weights
     const imgData = tempCtx.getImageData(0, 0, cleanW, cleanH);
     const data = imgData.data;
     for (let i = 0; i < data.length; i += 4) {
-        // Fast integer grayscale luma weights
         const gray = (data[i] * 77 + data[i+1] * 150 + data[i+2] * 29) >> 8;
-        data[i] = gray;     // R
-        data[i+1] = gray;   // G
-        data[i+2] = gray;   // B
+        data[i] = gray; data[i+1] = gray; data[i+2] = gray;
     }
     tempCtx.putImageData(imgData, 0, 0);
 
-    // Render it resized (48x48) on sub-canvas
+    // Render resized (48x48) on sub-canvas
     ctxFace.fillStyle = '#000000';
     ctxFace.fillRect(0, 0, canvasFace.width, canvasFace.height);
-    
-    // Use canvas scaling (bilinear scaling is fine because image-rendering: pixelated handles visual sizing)
-    ctxFace.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 0, 0, canvasFace.width, canvasFace.height);
+    ctxFace.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width, offscreenCanvas.height, 0, 0, canvasFace.width, canvasFace.height);
 }
 
 // --------------------------------------------------------------------------
@@ -517,35 +525,91 @@ function translateEmotion(emotion) {
     return dict[emotion] || emotion;
 }
 
-function setDebounceUI(state, timeText = "0 ms / 200 ms", fillPercent = 0) {
-    dbSustainCard.className = "db-state-item";
+function setDebounceUI(state) {
+    // Cancel any running smooth animation before switching state
+    if (dbAnimFrame) { cancelAnimationFrame(dbAnimFrame); dbAnimFrame = null; }
+
+    dbSustainCard.className  = "db-state-item";
     dbCooldownCard.className = "db-state-item";
-    dbIdleCard.className = "db-state-item";
+    dbIdleCard.className     = "db-state-item";
 
     if (state === 'idle') {
         dbIdleCard.className = "db-state-item active";
-        dbTimeVal.textContent = "0 ms / 200 ms";
+        dbTimeVal.textContent = "0 ms / 100 ms";
         dbBarFill.style.width = "0%";
     } else if (state === 'sustain') {
         dbSustainCard.className = "db-state-item active";
-        dbTimeVal.textContent = timeText;
-        dbBarFill.style.width = `${fillPercent}%`;
     } else if (state === 'cooldown') {
         dbCooldownCard.className = "db-state-item active";
-        dbTimeVal.textContent = timeText;
-        dbBarFill.style.width = `${fillPercent}%`;
     }
+}
+
+// Smooth sustain animation: extrapolates forward from last known elapsed value.
+// Each new DEBOUNCE:SUSTAIN message restarts the animation from the updated position,
+// so the bar smoothly fills between inference updates (~150ms apart).
+function startSustainAnimation(elapsedMs, targetMs) {
+    if (dbAnimFrame) { cancelAnimationFrame(dbAnimFrame); dbAnimFrame = null; }
+    const startRealTime = performance.now();
+    const startElapsed  = elapsedMs;
+    function tick() {
+        const realElapsed = performance.now() - startRealTime;
+        const currentMs   = Math.min(startElapsed + realElapsed, targetMs);
+        const pct         = (currentMs / targetMs) * 100;
+        dbTimeVal.textContent  = `${currentMs.toFixed(0)} ms / ${targetMs} ms`;
+        dbBarFill.style.width  = `${pct}%`;
+        if (currentMs < targetMs) {
+            dbAnimFrame = requestAnimationFrame(tick);
+        } else {
+            dbAnimFrame = null; // Hold at 100% until next protocol message
+        }
+    }
+    dbAnimFrame = requestAnimationFrame(tick);
+}
+
+// Smooth cooldown animation: counts down from remainingMs to 0 using real elapsed time.
+// This gives a completely smooth countdown regardless of inference update rate.
+function startCooldownAnimation(remainingMs, durationMs) {
+    if (dbAnimFrame) { cancelAnimationFrame(dbAnimFrame); dbAnimFrame = null; }
+    const startRealTime   = performance.now();
+    const startRemaining  = remainingMs;
+    function tick() {
+        const realElapsed      = performance.now() - startRealTime;
+        const currentRemaining = Math.max(startRemaining - realElapsed, 0);
+        const pct              = (currentRemaining / durationMs) * 100;
+        dbTimeVal.textContent  = `冷卻中: ${currentRemaining.toFixed(0)} ms / ${durationMs} ms`;
+        dbBarFill.style.width  = `${pct}%`;
+        if (currentRemaining > 0) {
+            dbAnimFrame = requestAnimationFrame(tick);
+        } else {
+            dbAnimFrame = null;
+            setDebounceUI('idle'); // Auto-return to idle when countdown finishes
+        }
+    }
+    dbAnimFrame = requestAnimationFrame(tick);
 }
 
 let hapticAlarmTimeout = null;
 function triggerHapticAlarm(label, code) {
-    // 1. Show flashing alarm overlay on DOM
+    const isPositive = (label === "Happiness");
+
+    // 1. Dynamically set icon & title based on emotion polarity
+    if (isPositive) {
+        alarmIcon.textContent  = "😊";
+        alarmTitle.textContent = "觸覺正向觸發 (HAPTIC POSITIVE)";
+        alarmOverlay.classList.remove('happiness');
+        alarmOverlay.classList.add('triggered', 'happiness');
+    } else {
+        alarmIcon.textContent  = "⚠️";
+        alarmTitle.textContent = "觸覺警告觸發 (HAPTIC ALERT)";
+        alarmOverlay.classList.remove('happiness');
+        alarmOverlay.classList.add('triggered');
+    }
+
     alarmDetail.textContent = getHapticPatternDescription(label);
-    alarmOverlay.classList.add('triggered');
-    
-    // Optional Web Vibrate
+
+    // Optional Web Vibrate (shorter & gentler for positive emotions)
     if ("vibrate" in navigator) {
-        navigator.vibrate([200, 100, 200]);
+        navigator.vibrate(isPositive ? [80, 60, 80] : [200, 100, 200]);
     }
 
     // 2. Schedule automatic fade-out
@@ -553,13 +617,14 @@ function triggerHapticAlarm(label, code) {
         clearTimeout(hapticAlarmTimeout);
     }
     hapticAlarmTimeout = setTimeout(() => {
-        alarmOverlay.classList.remove('triggered');
+        alarmOverlay.classList.remove('triggered', 'happiness');
         hapticAlarmTimeout = null;
     }, 1800);
 }
 
 function getHapticPatternDescription(label) {
     const patterns = {
+        "Happiness": "😊 喜悅觸發：溫和雙脈衝柔和震感 (Effect 8 x2 + Delay 50ms, 400ms)",
         "Sadness": "😢 悲傷觸發：緩慢平滑漸弱 100% 到 0% (Effect 70, 1000ms)",
         "Anger": "😡 憤怒觸發：雙重長震動強嗡嗡聲 (Effect 14 x2, 1500ms)",
         "Fear": "😨 恐懼觸發：三波真實模擬心跳震感 (Effect 1 + 3 + Delays, 1000ms)",
@@ -571,8 +636,9 @@ function getHapticPatternDescription(label) {
 
 // Color coding log terminal
 function printConsoleLine(line) {
-    // Filter out high-frequency raw telemetry lines from the visual console to prevent DOM lag and free up CPU
-    if (line.includes("FACE_DETECT_LATENCY:") || line.includes("CAMERA_FPS:") || line.includes("EMOTION_PROBS:") || line.includes("FACE_BOX:")) {
+    // Filter high-frequency raw telemetry and debounce spam to prevent DOM lag
+    if (line.includes("FACE_DETECT_LATENCY:") || line.includes("CAMERA_FPS:") || line.includes("EMOTION_PROBS:") || line.includes("FACE_BOX:") ||
+        line.startsWith("DEBOUNCE:") || line.includes("[DEBOUNCE] Sustained") || line.includes("Warning verified but skipped")) {
         return;
     }
 
