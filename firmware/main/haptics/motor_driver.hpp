@@ -22,7 +22,8 @@ void init();
  *   - DISGUST: Septuple Rough Buzz 60% (Effect 22 x7, 2000ms duration)
  *   - SADNESS: Transition Ramp Down Long Smooth 1-100% to 0% (Effect 70, 1000ms duration)
  *   - ANGER: Long Double Strong Buzz 100% (Effect 14 x2, 1500ms duration)
- *   - HAPPINESS / NEUTRAL: Silent (no physical trigger to prevent UI cluttering)
+ *   - HAPPINESS: Gentle Soft Double Pulse (Effect 8 x2 + Delay 50ms, 400ms duration)
+ *   - NEUTRAL: Silent (no physical trigger to prevent UI cluttering)
  * 
  * @param emotion The detected emotion to actuate
  */
