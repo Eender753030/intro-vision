@@ -33,7 +33,7 @@ graph TD
 *   **Core 0 (Face Capture & Preprocessing)**: Acquires camera frames in RGB565 format, runs the lightweight ESP-WHO face detector (`MSRMNP_S8_V1`), clips the bounding region, and scales it down to $48 \times 48$ grayscale. The resulting pointer is sent to Core 1 using a zero-copy queue to bypass memory reallocation overhead.
 *   **Core 1 (AI Inference & Control)**: Dequeues the image pointer, runs the customized `SimpleCNN` model using ESP-DL, and feeds the predicted class into the debounce state machine.
 
-### 2. Anti-Jitter State Machine (防抖與冷卻機制)
+### 2. Anti-Jitter State Machine
 To prevent erratic vibrations caused by momentary facial expression changes:
 *   **Debounce (100ms / 200ms)**: The target emotion must sustain continuously for a configured threshold (default: 200ms) before triggering physical haptic feedback.
 *   **Cooldown (5 Seconds)**: Once a pattern finishes playing, the actuator is locked in a mute/standby state for 5 seconds, preventing sensory fatigue and secondary user anxiety.
@@ -87,13 +87,13 @@ The system encodes predictions into distinct haptic profiles on the DRV2605L dri
 
 | Detected Emotion | DRV2605L Library Pattern | Physical Haptic Feel |
 | :--- | :--- | :--- |
-| **😮 Surprise (驚訝)** | Quadruple Click | 4 consecutive sharp pulses (400ms) |
-| **😨 Fear (恐懼)** | Triple Heartbeat | 3 pulsing heartbeat sensations (1000ms) |
-| **😢 Sadness (悲傷)** | Transition Ramp Down | Slow, smooth fading release (1000ms) |
-| **😠 Anger (生氣)** | Double Strong Buzz | Long, intense double vibration (1500ms) |
-| **😊 Happiness (喜悅)** | Gentle Double Pulse | 2 warm, soft taps (400ms) |
-| **🤢 Disgust (厭惡)** | Multiple Rough Buzz | Prolonged coarse, grinding friction (2000ms) |
-| **😐 Neutral (平靜)** | Silent | Off (Muted to avoid user annoyance) |
+| **😮 Surprise** | Quadruple Click | 4 consecutive sharp pulses (400ms) |
+| **😨 Fear** | Triple Heartbeat | 3 pulsing heartbeat sensations (1000ms) |
+| **😢 Sadness** | Transition Ramp Down | Slow, smooth fading release (1000ms) |
+| **😠 Anger** | Double Strong Buzz | Long, intense double vibration (1500ms) |
+| **😊 Happiness** | Gentle Double Pulse | 2 warm, soft taps (400ms) |
+| **🤢 Disgust** | Multiple Rough Buzz | Prolonged coarse, grinding friction (2000ms) |
+| **😐 Neutral** | Silent | Off (Muted to avoid user annoyance) |
 
 ---
 
