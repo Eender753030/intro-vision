@@ -1,6 +1,6 @@
 # Intro-Vision (v0.4.0)
 
-Intro-Vision is a low-cost, fully offline wearable AI assistant designed to provide social auxiliary support via tactile-encoded feedback. Operating entirely on the edge, the system detects human faces, recognizes their micro-expressions in real-time, and translates them into distinct vibration patterns using a haptic driver, protecting user privacy with zero data transmission.
+Intro-Vision is a low-cost, fully offline wearable AI assistant designed to provide social auxiliary support via tactile-encoded feedback. Operating entirely on the edge, the system detects human faces, recognizes their expressions in real-time, and translates them into distinct vibration patterns using a haptic driver, protecting user privacy with zero data transmission.
 
 ---
 
@@ -65,7 +65,7 @@ Below is the comparative evaluation of the CNN variants trained and tested for t
 | **simple_dwcnn_4stage_16channels** | 220,839 | 13.34 M | 70.01% | 69.95% | 108.69 ms | 9.20 FPS | 170 ms ~ 230 ms |
 
 ### Table 2: Memory Footprint on ESP32-S3
-| Candidate Model Name | Static SRAM Used | Peak SRAM Used (Min Ever) | PSRAM Used |
+| Candidate Model Name | Static SRAM Used | Peak SRAM Used | PSRAM Used |
 | :--- | :---: | :---: | :---: |
 | **🥇 simple_cnn_2stage_16channels** | **14.2 KB** (Lowest) | **26.6 KB** (Lowest) | 136.8 KB |
 | **simple_cnn_3stage_8channels** | 19.8 KB | 39.9 KB | **117.8 KB** (Lowest) |
@@ -108,7 +108,7 @@ curl -fsSL https://pixi.sh/install.sh | bash
 source ~/.bashrc
 
 # 2. Clone repository & submodules (esp-who custom components)
-git clone --recursive <repository_url>
+git clone --recursive https://github.com/Eender753030/intro-vision
 cd intro-vision
 
 # 3. Pull Python packages & compiler bindings automatically
@@ -120,7 +120,7 @@ pixi install
 ## 🚀 One-Click Commands Workflow
 
 ### Phase 1: Train & Export Models
-Modify training configs inside [config.toml](file:///home/eender/Workspace/Project/intro-vision/emotion_detect/config.toml).
+Modify training configs inside [config.toml](emotion_detect/config.toml).
 *   **Run Training Pipeline**:
     ```bash
     pixi run emo_train
